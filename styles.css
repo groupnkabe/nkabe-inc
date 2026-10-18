@@ -21,8 +21,9 @@ button { font: inherit; }
 .skip-link:focus { left: 12px; }
 .site-shell { overflow: hidden; }
 .site-header { width: min(calc(100% - 64px), 1400px); height: 92px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); position: relative; z-index: 20; }
-.wordmark { display: inline-flex; align-items: center; min-width: 0; background: #fff; padding: 7px 12px; border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
-.wordmark-logo { display: block; height: 30px; width: auto; }
+.wordmark { display: inline-flex; align-items: center; gap: 10px; min-width: 140px; }
+.wordmark-mark { display: block; height: 32px; width: auto; }
+.wordmark-name { font-size: 17px; font-weight: 700; letter-spacing: .14em; }
 .primary-nav { display: flex; align-items: center; gap: clamp(18px, 3vw, 42px); color: #BBC4C7; font-size: 11px; letter-spacing: .05em; }
 .primary-nav a { transition: color .2s ease; }
 .primary-nav a:hover { color: var(--white); }
@@ -165,8 +166,8 @@ h1 em,h2 em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; 
 .roadmap-state { border: 1px solid rgba(168,166,129,.45); color: var(--moss); font-size: 7px; letter-spacing: .13em; padding: 6px 8px; white-space: nowrap; }
 .roadmap-state.future { border-color: var(--line); color: #859398; }
 .company-section { background: var(--cloud); color: var(--obsidian); display: grid; grid-template-columns: .5fr 1.5fr; gap: 8%; padding-top: 112px; padding-bottom: 112px; align-items: start; }
-.company-mark { width: 150px; height: 150px; border: 1px solid rgba(10,15,20,.2); border-radius: 50%; display: grid; place-items: center; font-size: 57px; font-weight: 500; letter-spacing: -.1em; position: relative; }
-.company-mark span { position: absolute; right: 25px; top: 23px; font-size: 12px; color: #5F7C68; }
+.company-mark { width: 150px; height: 150px; border: 1px solid rgba(10,15,20,.2); border-radius: 50%; display: grid; place-items: center; position: relative; }
+.company-mark-logo { width: 84px; height: auto; display: block; }
 .company-copy .eyebrow { color: #506B58; }
 .company-copy h2 { font-size: clamp(34px,4.2vw,52px); }
 .company-copy > p:not(.eyebrow):not(.company-base) { max-width: 720px; color: #45544D; font-size: 13px; line-height: 2; margin-top: 26px; }
@@ -185,8 +186,9 @@ h1 em,h2 em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; 
 .contact-orbit span:nth-child(2) { top: 280px; left: 42px; width: 4px; height: 4px; }
 .contact-orbit span:nth-child(3) { top: 390px; left: 420px; width: 3px; height: 3px; }
 .site-footer { min-height: 92px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px max(32px, calc((100% - var(--container))/2)); }
-.footer-wordmark { min-width: auto; padding: 5px 9px; }
-.footer-wordmark .wordmark-logo { height: 22px; }
+.footer-wordmark { min-width: auto; }
+.footer-wordmark .wordmark-mark { height: 24px; }
+.footer-wordmark .wordmark-name { font-size: 12px; }
 .site-footer > p { color: #7D8A8F; font-size: 8px; letter-spacing: .16em; margin: 0; }
 .site-footer > p span { color: var(--moss); }
 .copyright { color: #657279; font-size: 8px; }
@@ -204,7 +206,8 @@ h1 em,h2 em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; 
 @media (max-width: 720px) {
   html { scroll-padding-top: 76px; }
   .site-header { width: calc(100% - 40px); height: 72px; }
-  .wordmark-logo { height: 26px; }
+  .wordmark-mark { height: 28px; }
+  .wordmark-name { font-size: 15px; }
   .nav-toggle { display: flex; width: 42px; height: 42px; flex-direction: column; justify-content: center; align-items: center; gap: 6px; border: 1px solid var(--line); background: transparent; color: var(--white); cursor: pointer; }
   .nav-toggle span { width: 17px; height: 1px; background: var(--cloud); transition: transform .2s ease; }
   .nav-toggle[aria-expanded="true"] span:first-child { transform: translateY(3.5px) rotate(45deg); }
@@ -268,8 +271,8 @@ h1 em,h2 em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; 
   .roadmap-item { grid-template-columns: 45px 1fr; gap: 10px; }
   .roadmap-state { grid-column: 2; justify-self: start; }
   .company-section { grid-template-columns: 1fr; gap: 30px; padding-top: 80px; padding-bottom: 80px; }
-  .company-mark { width: 90px; height: 90px; font-size: 38px; }
-  .company-mark span { top: 11px; right: 12px; }
+  .company-mark { width: 90px; height: 90px; }
+  .company-mark-logo { width: 50px; }
   .company-copy > p:not(.eyebrow):not(.company-base) { font-size: 12px; }
   .contact-section { padding-top: 80px; padding-bottom: 80px; }
   .contact-orbit { width: 320px; height: 320px; right: -180px; top: 5px; }

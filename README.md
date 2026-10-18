@@ -35,8 +35,8 @@ For a company website, prefer a clean project/repository name, e.g. `nkabe-websi
 - `script.js` — mobile navigation and contact configuration
 - `site-config.js` — public contact email and display settings
 - `assets/nkabe-os-mark.webp` — supplied nKABE OS mark, optimized for the web
-- `assets/nkabe-inc-logo.webp` — NKABE Inc. logo, used as the header and footer wordmark
-- `assets/nkabe-inc-logo.png` — NKABE Inc. logo (high-resolution PNG fallback)
+- `assets/nkabe-inc-mark.webp` — NKABE Inc. logo mark (transparent), shown beside the "NKABE Inc" text wordmark in the header and footer
+- `assets/nkabe-inc-mark.png` — NKABE Inc. logo mark (transparent PNG fallback)
 - `assets/favicon.svg` — lightweight favicon
 - `_headers` — security headers for Cloudflare Pages
 - `.github/workflows/pages.yml` — GitHub Pages deployment workflow
