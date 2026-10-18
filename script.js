@@ -24,8 +24,8 @@
   if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     contactButton.href = `mailto:${email}?subject=${encodeURIComponent('nKABE OS — pilot or partnership enquiry')}`;
     contactButton.removeAttribute('aria-describedby');
-    contactNote.textContent = email;
-    contactDetails.textContent = 'For pilot, partnership and investor enquiries, email us directly.';
+    contactNote.textContent = 'Opens your email app — your message goes straight to our inbox.';
+    contactDetails.textContent = 'For pilot, partnership and investor enquiries, use the button above; it opens your email app addressed to us directly.';
   } else {
     contactButton.href = '#contact-details';
     contactButton.setAttribute('aria-describedby', 'contact-note');
