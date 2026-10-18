@@ -179,6 +179,17 @@ h1 em,h2 em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; 
 .contact-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-top: 24px; position: relative; z-index: 2; }
 .contact-note { color: #718087; font-size: 9px; }
 .contact-detail { color: #718087; font-size: 9px; margin: 25px 0 0; position: relative; z-index: 2; max-width: 530px; }
+.contact-form { position: relative; z-index: 2; margin-top: 34px; max-width: 700px; }
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+.field { display: grid; gap: 8px; }
+.field.field-wide { grid-column: 1 / -1; }
+.field > span { color: #8A979B; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; }
+.field > span em { color: #64727A; font-style: normal; text-transform: none; letter-spacing: .04em; }
+.field input, .field textarea { width: 100%; background: rgba(196,209,198,.04); border: 1px solid var(--line); border-radius: 4px; color: var(--mist); font: inherit; font-size: 13px; padding: 13px 14px; }
+.field input:focus, .field textarea:focus { outline: none; border-color: rgba(196,209,198,.5); background: rgba(196,209,198,.08); }
+.field textarea { resize: vertical; min-height: 130px; }
+.contact-form .contact-actions { margin-top: 22px; }
+.contact-honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .contact-orbit { position: absolute; right: -120px; top: -95px; width: 550px; height: 550px; border: 1px solid rgba(196,209,198,.09); border-radius: 50%; }
 .contact-orbit::before,.contact-orbit::after { content: ''; position: absolute; inset: 54px; border: 1px solid rgba(196,209,198,.08); border-radius: 50%; }
 .contact-orbit::after { inset: 125px; border-color: rgba(168,166,129,.13); }
@@ -275,6 +286,7 @@ h1 em,h2 em { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; 
   .company-mark-logo { width: 40px; }
   .company-copy > p:not(.eyebrow):not(.company-base) { font-size: 12px; }
   .contact-section { padding-top: 80px; padding-bottom: 80px; }
+  .contact-grid { grid-template-columns: 1fr; }
   .contact-orbit { width: 320px; height: 320px; right: -180px; top: 5px; }
   .contact-orbit::before { inset: 35px; } .contact-orbit::after { inset: 75px; }
   .contact-actions { align-items: flex-start; flex-direction: column; }

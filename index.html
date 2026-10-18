@@ -174,11 +174,19 @@
         <p class="eyebrow">BUILD WITH US</p>
         <h2>Help us prove<br>what existing hardware<br><em>can become.</em></h2>
         <p class="contact-intro">We’re preparing for early pilot conversations with organizations and ecosystem partners interested in affordable local computing infrastructure.</p>
-        <div class="contact-actions">
-          <a class="button button-primary" id="contact-button" href="#contact-details">Pilot & partnership enquiries <span aria-hidden="true">↗</span></a>
-          <span class="contact-note" id="contact-note">Contact details are being finalized for this temporary site.</span>
-        </div>
-        <p class="contact-detail" id="contact-details">For current contact details, use the founder’s direct contact information provided with the relevant introduction or application.</p>
+        <form class="contact-form" id="contact-form" novalidate>
+          <div class="contact-grid">
+            <label class="field"><span>Name</span><input type="text" name="name" required autocomplete="name"></label>
+            <label class="field"><span>Email</span><input type="email" name="email" required autocomplete="email"></label>
+            <label class="field field-wide"><span>Organization <em>(optional)</em></span><input type="text" name="organization" autocomplete="organization"></label>
+            <label class="field field-wide"><span>Message</span><textarea name="message" rows="5" required></textarea></label>
+          </div>
+          <input class="contact-honeypot" type="checkbox" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <div class="contact-actions">
+            <button class="button button-primary" type="submit" id="contact-submit">Send enquiry <span aria-hidden="true">↗</span></button>
+            <span class="contact-note" id="contact-status" role="status" aria-live="polite">Your message goes straight to our inbox.</span>
+          </div>
+        </form>
       </section>
     </main>
 

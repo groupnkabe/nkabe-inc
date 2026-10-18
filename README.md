@@ -5,7 +5,7 @@ A responsive, static website for NKABE with **nKABE OS** as the flagship product
 ## Before public launch
 
 1. **Confirm legal name.** The public-facing brand currently says `NKABE`, not `NKABE, Inc.`. Because the Delaware entity's formation status has not been confirmed in this work session, do not represent the corporation as formed unless that is accurate. After formation, update copy only as approved by counsel.
-2. **Set a monitored contact email.** Edit `site-config.js` and set `publicContactEmail` to an inbox that is created and monitored. The contact CTA intentionally does not invent an email address.
+2. **Contact form.** The contact section posts to Web3Forms (`https://api.web3forms.com/submit`) using the access key in `site-config.js` (`contactFormAccessKey`). The destination inbox is set inside the Web3Forms account, so no email address is stored in this repository or exposed to visitors. Confirm the key before launch.
 3. **Review all product claims.** Copy distinguishes the current prototype/hardware-validation phase from planned pilots and future platform services. Keep that distinction.
 4. **Domain.** No custom domain is configured because `nkabe.com` acquisition remains unresolved. Use the host's temporary URL until a domain is under company control.
 
@@ -32,8 +32,8 @@ For a company website, prefer a clean project/repository name, e.g. `nkabe-websi
 
 - `index.html` — page content and metadata
 - `styles.css` — responsive visual system and layout
-- `script.js` — mobile navigation and contact configuration
-- `site-config.js` — public contact email and display settings
+- `script.js` — mobile navigation and Web3Forms contact-form submission
+- `site-config.js` — public settings (Web3Forms access key, display options)
 - `assets/nkabe-os-mark.webp` — supplied nKABE OS mark, optimized for the web
 - `assets/nkabe-inc-mark.webp` — NKABE Inc. logo mark (transparent), shown beside the "NKABE Inc" text wordmark in the header and footer
 - `assets/nkabe-inc-mark.png` — NKABE Inc. logo mark (transparent PNG fallback)

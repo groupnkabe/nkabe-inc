@@ -1,7 +1,7 @@
-/* Public settings for the temporary NKABE site.
-   Keep the contact email blank until a monitored public address is confirmed.
-   Set it to the exact public inbox before publishing a production contact link. */
+/* Public settings for the NKABE site.
+   contactFormAccessKey: Web3Forms access key for the monitored inbox.
+   The destination email address is never stored here and is never exposed to visitors. */
 window.NKABE_SITE_CONFIG = {
-  publicContactEmail: "nkabeinvestment@gmail.com",
+  contactFormAccessKey: "61cde140-8dd4-4f83-8f9b-b3c2af35c06d",
   publicLegalName: "NKABE"
 };
