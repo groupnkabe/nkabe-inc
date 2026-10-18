@@ -34,7 +34,8 @@ For a company website, prefer a clean project/repository name, e.g. `nkabe-websi
 - `styles.css` — responsive visual system and layout
 - `script.js` — mobile navigation and contact configuration
 - `site-config.js` — public contact email and display settings
-- `assets/nkabe-os-mark.webp` — supplied nKABE OS mark, optimized for the web
+- `assets/nkabe-inc-logo.webp` — NKABE Inc. logo, cropped and optimized for the web (hero and product panels)
+- `assets/nkabe-inc-logo.png` — NKABE Inc. logo, used for the social share preview (`og:image`)
 - `assets/favicon.svg` — lightweight favicon
 - `_headers` — security headers for Cloudflare Pages
 - `.github/workflows/pages.yml` — GitHub Pages deployment workflow
