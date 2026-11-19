@@ -341,3 +341,10 @@
   .admin-team-intro { margin-bottom:18px; }
   .admin-team-list-section .admin-section-heading { align-items:flex-start; }
 }
+
+/* Outbound email delivery states */
+.admin-email-status { display:block; margin-top:9px; color:var(--steel); font-size:11px; line-height:1.5; }
+.admin-email-status.sent { color:#147A51; font-weight:700; }
+.admin-email-status.failed { color:#A33D36; font-weight:700; }
+.admin-send-email { margin-top:10px; min-height:36px; padding:8px 13px; font-size:12px; }
+.admin-send-email:disabled { opacity:.6; cursor:wait; }
