@@ -6,7 +6,7 @@ const publishableKey = (config.supabaseAnonKey || '').trim();
 const supabase = createClient(supabaseUrl, publishableKey);
 
 const $ = (selector) => document.querySelector(selector);
-const state = { user: null, profile: null, contacts: [], pilots: [], messages: [], active: null, view: 'overview' };
+const state = { user: null, profile: null, contacts: [], pilots: [], messages: [], active: null, view: 'overview', recoveryMode: false };
 const contactStatuses = ['new', 'reviewing', 'replied', 'closed'];
 const pilotStatuses = ['new', 'reviewing', 'needs_information', 'technically_assessed', 'suitable', 'not_suitable', 'pilot_discussion', 'closed'];
 
@@ -27,6 +27,8 @@ function showLogin(message = '') {
   $('.admin-footer').hidden = true;
   $('#login-view').hidden = false;
   $('#workspace-view').hidden = true;
+  $('#login-panel').hidden = state.recoveryMode;
+  $('#password-reset-panel').hidden = !state.recoveryMode;
   $('#login-status').textContent = message;
 }
 function showWorkspace() {
@@ -217,7 +219,30 @@ $('#login-form').addEventListener('submit',async(event)=>{
   if(error){$('#login-status').textContent = 'Sign-in failed. Check your details and try again.';return;}
   await checkAccess(data.session);
 });
+$('#request-password-reset').addEventListener('click',async()=>{
+  const address = $('#login-email').value.trim();
+  if (!address) { $('#login-status').textContent = 'Enter your account email address first.'; return; }
+  $('#login-status').textContent = 'Sending a secure password setup link…';
+  const {error} = await supabase.auth.resetPasswordForEmail(address,{redirectTo:'https://nkabe.us/admin/'});
+  $('#login-status').textContent = error ? 'Could not send the link. Please try again or contact the workspace owner.' : 'If this address belongs to an authorised account, a password setup link has been sent.';
+});
+$('#password-reset-form').addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  const password = $('#new-password').value;
+  if (password !== $('#confirm-password').value) { $('#password-reset-status').textContent = 'The passwords do not match.'; return; }
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  button.disabled = true; $('#password-reset-status').textContent = 'Saving your password…';
+  const {error} = await supabase.auth.updateUser({password});
+  button.disabled = false;
+  if (error) { $('#password-reset-status').textContent = 'Password could not be saved. Request a fresh setup link and try again.'; return; }
+  state.recoveryMode = false;
+  $('#password-reset-form').reset();
+  showLogin('Password saved. Sign in with your new password.');
+});
 $('#sign-out').addEventListener('click',async()=>{await supabase.auth.signOut();state.user=null;state.profile=null;showLogin('You have signed out.');});
-supabase.auth.onAuthStateChange((_event,session)=>{ if (_event === 'SIGNED_OUT') showLogin(); });
+supabase.auth.onAuthStateChange((_event,session)=>{
+  if (_event === 'SIGNED_OUT') { state.recoveryMode = false; showLogin(); }
+  if (_event === 'PASSWORD_RECOVERY') { state.recoveryMode = true; showLogin('Choose a new password for your Nkabe admin account.'); }
+});
 const {data:{session}} = await supabase.auth.getSession();
 await checkAccess(session);
