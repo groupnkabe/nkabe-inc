@@ -98,15 +98,16 @@
     const computerGroups = [...form.querySelectorAll('[data-inventory-group]')].map((group) => {
       const fields = {};
       group.querySelectorAll('input, select, textarea').forEach((field) => {
-        const match = field.name.match(/^Inventory \\d+ - (.+)$/);
-        if (match) fields[match[1]] = field.value.trim();
+        const label = field.closest('label')?.querySelector('span')?.textContent.trim()
+          .replace(/\\s*\\(.*?\\)\\s*/g, '');
+        if (label) fields[label] = field.value.trim();
       });
       return {
         computer_type: fields['Computer type'] || '',
         quantity: Number(fields['Quantity'] || 0),
         manufacturer_model: fields['Manufacturer and model'] || '',
         processor: fields['Processor'] || '',
-        ram: fields['Memory (RAM)'] || '',
+        ram: fields['Memory'] || '',
         storage: fields['Storage'] || '',
         operating_system: fields['Operating system'] || '',
         approximate_age: fields['Approximate age'] || '',
@@ -116,28 +117,28 @@
 
     return {
       form_type: 'pilot',
-      contact_name: value(data, "Contact person's name"),
-      contact_email: value(data, 'Work email'),
-      phone_or_whatsapp: value(data, 'Phone / WhatsApp (optional)'),
-      contact_role: value(data, 'Your role (optional)'),
-      organisation_name: value(data, 'Organisation name'),
+      contact_name: value(data, 'Contact name'),
+      contact_email: value(data, 'Email'),
+      phone_or_whatsapp: value(data, 'Phone or WhatsApp'),
+      contact_role: value(data, 'Contact role'),
+      organisation_name: value(data, 'Organisation'),
       organisation_type: value(data, 'Organisation type'),
-      organisation_website: value(data, 'Website (optional)'),
-      town_city: value(data, 'Town / city'),
-      region_state: value(data, 'Region / state'),
+      organisation_website: value(data, 'Organisation website'),
+      town_city: value(data, 'Town or city'),
+      region_state: value(data, 'Region or state'),
       country: value(data, 'Country'),
       capabilities: [...form.querySelectorAll('input[name="Capabilities to explore"]:checked')].map((input) => input.value),
-      use_case: value(data, 'Describe the problem, workflow or opportunity you want to explore'),
+      use_case: value(data, 'Computing needs and use case'),
       computer_groups: computerGroups,
-      existing_inventory_link: value(data, 'Link to an existing computer inventory (optional — Google Drive, OneDrive or another share link)'),
+      existing_inventory_link: value(data, 'Existing inventory link'),
       local_network: value(data, 'Local network'),
       internet_connectivity: value(data, 'Internet connectivity'),
       networking_equipment: value(data, 'Networking equipment'),
-      computer_room_or_lab: value(data, 'Computer room / lab'),
-      electricity_reliability: value(data, 'Electricity'),
+      computer_room_or_lab: value(data, 'Computer room or lab'),
+      electricity_reliability: value(data, 'Electricity reliability'),
       backup_power: value(data, 'Backup power'),
-      it_support_arrangement: value(data, 'Who provides IT support? (optional)'),
-      additional_information: value(data, 'Anything else we should know? (optional)'),
+      it_support_arrangement: value(data, 'IT support arrangement'),
+      additional_information: value(data, 'Additional information'),
       contact_permission: form.querySelector('input[name="Contact permission"]')?.checked === true,
       website: value(data, 'botcheck')
     };
