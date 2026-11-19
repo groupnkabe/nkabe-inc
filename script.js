@@ -35,7 +35,7 @@
       if (legend) legend.textContent = `Computer group ${number}`;
       group.querySelectorAll('input, select, textarea').forEach((field) => {
         const labelText = field.closest('label')?.querySelector('span')?.textContent.trim()
-          .replace(/\\s*\\(.*?\\)\\s*/g, '');
+          .replace(/\s*\(.*?\)\s*/g, '');
         if (labelText) field.name = `Inventory ${number} - ${labelText}`;
       });
       const remove = group.querySelector('[data-remove-inventory]');
@@ -72,7 +72,7 @@
   }
 
   const config = window.NKABE_SITE_CONFIG || {};
-  const supabaseUrl = typeof config.supabaseUrl === 'string' ? config.supabaseUrl.trim().replace(/\\/$/, '') : '';
+  const supabaseUrl = typeof config.supabaseUrl === 'string' ? config.supabaseUrl.trim().replace(/\/$/, '') : '';
   const supabaseAnonKey = typeof config.supabaseAnonKey === 'string' ? config.supabaseAnonKey.trim() : '';
 
   const value = (data, key) => {
@@ -99,7 +99,7 @@
       const fields = {};
       group.querySelectorAll('input, select, textarea').forEach((field) => {
         const label = field.closest('label')?.querySelector('span')?.textContent.trim()
-          .replace(/\\s*\\(.*?\\)\\s*/g, '');
+          .replace(/\s*\(.*?\)\s*/g, '');
         if (label) fields[label] = field.value.trim();
       });
       return {
