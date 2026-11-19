@@ -3,7 +3,7 @@
 
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  role text not null default 'staff' check (role in ('owner', 'admin', 'staff')),
+  display_name text,\n  role text not null default 'staff' check (role in ('owner', 'admin', 'staff')),
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
