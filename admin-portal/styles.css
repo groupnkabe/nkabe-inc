@@ -1,0 +1,16 @@
+:root {
+  color-scheme: light;
+  --midnight:#061A3A; --deep-navy:#0B254D; --cyan:#0DC5E6;
+  --accessible-cyan:#007799; --alabaster:#F8FAFC; --white:#FFFFFF;
+  --steel:#475569; --mist:#E2E8F0; --line:#D7E0EA;
+  --font-body:'DM Sans',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-display:'Manrope',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--alabaster);color:var(--midnight);font-family:var(--font-body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button,input,textarea,select{font:inherit}
+button,a{-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:3px solid var(--accessible-cyan);outline-offset:3px}
+img{max-width:100%}

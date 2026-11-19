@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="theme-color" content="#061A3A">
+<title>Admin workspace | Nkabe</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./admin.css">
+<script src="./site-config.js"></script>
+<script type="module" src="./admin.js"></script>
+</head>
+<body class="admin-body">
+<div class="admin-shell">
+  <aside class="admin-sidebar" aria-label="Admin navigation">
+    <a class="admin-brand" href="https://nkabe.us/"><img src="https://nkabe.us/assets/nkabe-inc-mark.webp" alt=""><span>Nkabe <small>ADMIN WORKSPACE</small></span></a>
+    <div class="admin-sidebar-label">WORKSPACE</div>
+    <nav class="admin-nav">
+      <button class="admin-nav-item active" data-view="overview"><span>◫</span> Overview</button>
+      <button class="admin-nav-item" data-view="all"><span>▤</span> All conversations</button>
+      <button class="admin-nav-item" data-view="contacts"><span>↗</span> Contact enquiries</button>
+      <button class="admin-nav-item" data-view="pilots"><span>⌘</span> Pilot applications</button>
+    </nav>
+    <div class="admin-sidebar-bottom">
+      <span class="admin-secure"><i></i> Private workspace</span>
+      <button id="sign-out" class="admin-signout" type="button">Sign out <span>↗</span></button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar">
+      <div><p class="admin-overline">NKABE INC. / OPERATIONS</p><h1 id="page-title">Overview</h1></div>
+      <div class="admin-user"><span class="admin-avatar" id="user-avatar">N</span><span><strong id="user-email">Not signed in</strong><small id="user-role">Staff access</small></span></div>
+    </header>
+
+    <section id="login-view" class="admin-login" hidden>
+      <div class="admin-login-card">
+        <p class="admin-overline">NKABE INC. / SECURE ACCESS</p>
+        <h2>Welcome back.</h2>
+        <p class="admin-muted">Sign in with an authorised Nkabe staff account.</p>
+        <form id="login-form">
+          <label>Email address<input id="login-email" type="email" autocomplete="username" required></label>
+          <label>Password<input id="login-password" type="password" autocomplete="current-password" required></label>
+          <button class="admin-primary" type="submit">Sign in <span>↗</span></button>
+          <p id="login-status" class="admin-form-status" role="status"></p>
+        </form>
+        <p class="admin-login-foot">Access is invitation-only. Public registration is disabled.</p>
+      </div>
+    </section>
+
+    <section id="workspace-view" hidden>
+      <div id="overview-view" class="admin-view">
+        <div class="admin-welcome"><div><p class="admin-overline">YOUR RELATIONSHIP PIPELINE</p><h2>Keep every conversation moving.</h2><p>Review incoming enquiries, assess pilot opportunities and keep the full history in one place.</p></div><button class="admin-refresh" id="refresh-data" type="button">↻ Refresh</button></div>
+        <div class="admin-stat-grid">
+          <article class="admin-stat"><span>NEW ENQUIRIES</span><strong id="stat-new-contacts">—</strong><small>Awaiting review</small></article>
+          <article class="admin-stat"><span>PILOT APPLICATIONS</span><strong id="stat-pilots">—</strong><small id="stat-new-pilots">— new applications</small></article>
+          <article class="admin-stat"><span>IN REVIEW</span><strong id="stat-reviewing">—</strong><small>Across both inboxes</small></article>
+          <article class="admin-stat"><span>REPLIES / DRAFTS</span><strong id="stat-replies">—</strong><small>Conversation activity</small></article>
+        </div>
+        <div class="admin-section-heading"><div><p class="admin-overline">RECENT ACTIVITY</p><h2>Latest submissions</h2></div><button class="admin-text-button" data-open-view="all" type="button">View all conversations ↗</button></div>
+        <div id="recent-list" class="admin-list admin-recent-list"><p class="admin-empty">Loading submissions…</p></div>
+      </div>
+
+      <div id="inbox-view" class="admin-view" hidden>
+        <div class="admin-inbox-toolbar">
+          <div><p class="admin-overline" id="inbox-overline">RELATIONSHIP MANAGEMENT</p><h2 id="inbox-heading">All conversations</h2></div>
+          <div class="admin-inbox-actions"><input id="inbox-search" type="search" placeholder="Search name, organisation, email…" aria-label="Search submissions"><select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option><option value="new">New</option><option value="reviewing">Reviewing</option><option value="needs_information">Needs information</option><option value="technically_assessed">Technically assessed</option><option value="suitable">Suitable</option><option value="not_suitable">Not suitable</option><option value="pilot_discussion">Pilot discussion</option><option value="replied">Replied</option><option value="closed">Closed</option></select></div>
+        </div>
+        <div class="admin-inbox-layout">
+          <div id="inbox-list" class="admin-list"><p class="admin-empty">Loading submissions…</p></div>
+          <article id="detail-panel" class="admin-detail"><div class="admin-detail-empty"><span>↖</span><h3>Select a conversation</h3><p>Choose an enquiry or pilot application to review its details and conversation history.</p></div></article>
+        </div>
+      </div>
+    </section>
+    <div id="global-status" class="admin-toast" role="status" aria-live="polite"></div>
+    <footer class="admin-footer">NKABE INC. <span>PRIVATE STAFF WORKSPACE</span></footer>
+  </main>
+</div>
+</body>
+</html>
