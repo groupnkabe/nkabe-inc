@@ -156,7 +156,7 @@ async function renderDetail(key) {
       ${inventoryHtml}
       <section class="admin-detail-section"><h4>Conversation history</h4><div class="admin-timeline">${timelineHtml}</div></section>
       <form id="note-form" class="admin-composer"><h4>Add private note</h4><textarea id="note-body" required placeholder="Record an internal observation or next step…"></textarea><div class="admin-composer-actions"><button class="admin-secondary" type="submit">Save internal note</button></div></form>
-      <form id="reply-form" class="admin-composer"><h4>Compose reply</h4><label for="reply-subject">Subject</label><input id="reply-subject" value="${escapeHtml(kind === 'pilot' ? 'Re: Nkabe pilot application' : 'Re: Your enquiry to Nkabe')}"><label for="reply-body">Message</label><textarea id="reply-body" required placeholder="Write a response to ${escapeHtml(person(record,kind))}…"></textarea><div class="admin-composer-actions"><button class="admin-primary" type="submit">Save reply draft <span>↗</span></button></div><p class="admin-composer-hint">This saves the reply in the conversation history as an unsent draft. Email delivery will be connected in the next phase.</p></form>
+      ${['owner','admin'].includes(state.profile?.role) ? `<form id="reply-form" class="admin-composer"><h4>Compose reply</h4><label for="reply-subject">Subject</label><input id="reply-subject" value="${escapeHtml(kind === 'pilot' ? 'Re: Nkabe pilot application' : 'Re: Your enquiry to Nkabe')}"><label for="reply-body">Message</label><textarea id="reply-body" required placeholder="Write a response to ${escapeHtml(person(record,kind))}…"></textarea><div class="admin-composer-actions"><button class="admin-primary" type="submit">Save reply draft <span>↗</span></button></div><p class="admin-composer-hint">This saves the reply in the conversation history as an unsent draft. Email delivery will be connected in the next phase.</p></form>` : '<div class="admin-composer"><h4>Reply drafting restricted</h4><p class="admin-composer-hint">Staff access can add private notes and update record statuses. Reply drafts are reserved for admins and the owner.</p></div>'}
     </div>`;
   $('#record-status').addEventListener('change', async (event) => {
     const table = kind === 'contact' ? 'contact_messages' : 'pilot_applications';
@@ -167,7 +167,8 @@ async function renderDetail(key) {
     renderOverview(); renderInbox(); renderDetail(key);
   });
   $('#note-form').addEventListener('submit', (event) => saveConversation(event,kind,id,'internal_note'));
-  $('#reply-form').addEventListener('submit', (event) => saveConversation(event,kind,id,'outbound'));
+  const replyForm = $('#reply-form');
+  if (replyForm) replyForm.addEventListener('submit', (event) => saveConversation(event,kind,id,'outbound'));
 }
 async function saveConversation(event,kind,id,messageType) {
   event.preventDefault();
