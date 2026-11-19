@@ -308,7 +308,7 @@ h1 em, h2 em { color: var(--accessible-cyan); font-style: normal; }
 .footer-main > p { max-width: 430px; color: #B7C4D3; font-size: 13px; line-height: 1.8; margin: 0; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 24px; padding: 19px 0; border-top: 1px solid rgba(226,232,240,.17); border-bottom: 1px solid rgba(226,232,240,.17); color: #D5DFEA; font-size: 12px; }
 .footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 21px; }
-.copyright { color: #BCC9D7; font-size: 12px; }
+.copyright { color: #475569; font-size: 12px; }
 .back-to-top { color: #D5DFEA; font-size: 12px; }
 .back-to-top span { color: var(--cyan); padding-left: 6px; }
 
