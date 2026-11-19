@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
-<link rel="stylesheet" href="./admin.css?v=20261119-6">
+<link rel="stylesheet" href="./admin.css?v=20261119-7">
 <script src="./site-config.js?v=20261119-6"></script>
 <script type="module" src="./admin.js?v=20261119-6"></script>
 </head>
@@ -25,6 +25,7 @@
       <button class="admin-nav-item" data-view="all"><span>▤</span> All conversations</button>
       <button class="admin-nav-item" data-view="contacts"><span>↗</span> Contact enquiries</button>
       <button class="admin-nav-item" data-view="pilots"><span>⌘</span> Pilot applications</button>
+      <button class="admin-nav-item" id="team-nav" data-view="team" hidden><span>♙</span> Team access</button>
     </nav>
     <div class="admin-sidebar-bottom">
       <span class="admin-secure"><i></i> Private workspace</span>
@@ -84,6 +85,27 @@
           <div id="inbox-list" class="admin-list"><p class="admin-empty">Loading submissions…</p></div>
           <article id="detail-panel" class="admin-detail"><div class="admin-detail-empty"><span>↖</span><h3>Select a conversation</h3><p>Choose an enquiry or pilot application to review its details and conversation history.</p></div></article>
         </div>
+      </div>
+
+      <div id="team-view" class="admin-view" hidden>
+        <div class="admin-team-intro">
+          <div><p class="admin-overline">OWNER CONTROLS</p><h2>Manage team access.</h2><p>Invite trusted people into the Nkabe operations workspace and assign only the access they need.</p></div>
+        </div>
+        <section class="admin-team-invite">
+          <div><p class="admin-overline">ADD A TEAM MEMBER</p><h3>Send an invitation</h3><p>An invitation email will be sent. The account becomes authorised for the workspace immediately after the invitation is created.</p></div>
+          <form id="team-invite-form">
+            <label>Full name<input id="team-invite-name" type="text" maxlength="120" autocomplete="name" required placeholder="Team member's name"></label>
+            <label>Email address<input id="team-invite-email" type="email" maxlength="254" autocomplete="email" required placeholder="name@example.com"></label>
+            <label>Workspace role<select id="team-invite-role"><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
+            <button class="admin-primary" type="submit">Send invitation <span>↗</span></button>
+            <p id="team-invite-status" class="admin-form-status" role="status"></p>
+          </form>
+        </section>
+        <section class="admin-team-list-section">
+          <div class="admin-section-heading"><div><p class="admin-overline">AUTHORISED ACCOUNTS</p><h3>Team members</h3></div><button class="admin-refresh" id="refresh-team" type="button">↻ Refresh</button></div>
+          <div id="team-members" class="admin-team-members"><p class="admin-empty">Loading team members…</p></div>
+        </section>
+        <p class="admin-team-security-note">Owner access cannot be changed from this screen. Deactivated accounts lose workspace access through database policies even if an existing sign-in session remains open.</p>
       </div>
     </section>
     <div id="global-status" class="admin-toast" role="status" aria-live="polite"></div>
