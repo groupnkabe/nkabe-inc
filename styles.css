@@ -497,3 +497,5 @@ h1 em, h2 em { color: var(--accessible-cyan); font-style: normal; }
   .product-detail { padding-top: 10px; padding-bottom: 75px; }
   .pilot-section { grid-template-columns: 1fr; gap: 28px; padding-top: 25px; padding-bottom: 78px; }
 }
+
+.contact-heading h1 em { color: #57D9ED; font-style: normal; }
