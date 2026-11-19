@@ -219,12 +219,31 @@ $('#login-form').addEventListener('submit',async(event)=>{
   if(error){$('#login-status').textContent = 'Sign-in failed. Check your details and try again.';return;}
   await checkAccess(data.session);
 });
-$('#request-password-reset').addEventListener('click',async()=>{
-  const address = $('#login-email').value.trim();
-  if (!address) { $('#login-status').textContent = 'Enter your account email address first.'; return; }
-  $('#login-status').textContent = 'Sending a secure password setup link…';
-  const {error} = await supabase.auth.resetPasswordForEmail(address,{redirectTo:'https://nkabe.us/admin/'});
-  $('#login-status').textContent = error ? 'Could not send the link. Please try again or contact the workspace owner.' : 'If this address belongs to an authorised account, a password setup link has been sent.';
+$('#request-password-reset').addEventListener('click', async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  const status = $('#login-status');
+  const address = ($('#login-email')?.value || '').trim();
+  if (!address) {
+    status.textContent = 'Enter nkabeinc@outlook.com in the email field first.';
+    status.classList.add('is-visible');
+    $('#login-email')?.focus();
+    return;
+  }
+  const button = event.currentTarget;
+  button.disabled = true;
+  status.textContent = 'Requesting a password setup email…';
+  status.classList.add('is-visible');
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(address, { redirectTo: 'https://nkabe.us/admin/' });
+    status.textContent = error
+      ? `Password setup request failed: ${error.message}`
+      : 'Request accepted. Check your inbox and junk folder for the password setup email.';
+  } catch (error) {
+    status.textContent = `Could not contact Supabase: ${error?.message || 'Please try again.'}`;
+  } finally {
+    button.disabled = false;
+  }
 });
 $('#password-reset-form').addEventListener('submit',async(event)=>{
   event.preventDefault();
