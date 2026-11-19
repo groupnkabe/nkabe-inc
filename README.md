@@ -34,3 +34,32 @@ Each page has a distinct title, description, canonical URL and social-sharing me
 Nkabe is the public-facing technology brand; Nkabe Inc. is the legal entity. nKABE OS is presented as the flagship venture and described as in development. Its capability areas are framed as development work, not claims of completed operational functionality. The site does not claim customers, revenue, partnerships, deployments or market leadership.
 
 The repository's `_headers` file is retained as project configuration, but GitHub Pages does not apply Netlify-style `_headers` rules automatically.
+
+
+## Website form submissions (Supabase)
+
+The website's contact and nKABE OS pilot-interest forms are designed to submit to the
+Supabase Edge Function `submit-website-form`.
+
+### Database setup
+1. Create a Supabase project for Nkabe Inc.
+2. Open **SQL Editor** in the Supabase dashboard.
+3. Run the migration in `supabase/migrations/20261119000100_create_website_submissions.sql`.
+4. Deploy the Edge Function from this repository:
+   `supabase functions deploy submit-website-form --no-verify-jwt`
+5. In the website's `site-config.js`, set `supabaseUrl` to the project URL and
+   `supabaseAnonKey` to the project's anon/publishable key.
+6. Publish the site after configuration and test both forms with test data.
+
+The Edge Function uses the project's server-side `SUPABASE_SERVICE_ROLE_KEY` secret.
+That key must remain in Supabase's server-side environment and must never be added to
+website files or committed to GitHub.
+
+### Where submissions are reviewed
+Use **Supabase Dashboard → Table Editor**:
+- `pilot_applications`: organisation details, needs, status and review notes.
+- `pilot_computer_groups`: the computer inventory groups linked by `application_id`.
+- `contact_messages`: general website enquiries.
+
+Row Level Security is enabled and there are intentionally no public table policies.
+The public website can submit through the Edge Function but cannot read submitted records.
