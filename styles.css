@@ -304,7 +304,7 @@ h1 em, h2 em { color: var(--accessible-cyan); font-style: normal; }
 .site-footer { padding-top: 43px; padding-bottom: 25px; background: #04132C; color: var(--white); }
 .footer-main { display: grid; grid-template-columns: 220px minmax(0, 440px); gap: 32px; align-items: start; padding-bottom: 30px; }
 .footer-wordmark .wordmark-mark { height: 27px; }
-.footer-wordmark .wordmark-name { color: var(--white); font-size: 18px; }
+.footer-wordmark .wordmark-name { color: var(--midnight); font-size: 18px; }
 .footer-main > p { max-width: 430px; color: #B7C4D3; font-size: 13px; line-height: 1.8; margin: 0; }
 .footer-nav { display: flex; flex-wrap: wrap; gap: 24px; padding: 19px 0; border-top: 1px solid rgba(226,232,240,.17); border-bottom: 1px solid rgba(226,232,240,.17); color: #D5DFEA; font-size: 12px; }
 .footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 21px; }
