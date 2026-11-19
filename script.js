@@ -7,6 +7,7 @@
     toggle.setAttribute('aria-label', 'Open navigation');
     nav.classList.remove('open');
   };
+
   if (toggle && nav) {
     toggle.addEventListener('click', () => {
       const isOpen = toggle.getAttribute('aria-expanded') === 'true';
@@ -25,18 +26,6 @@
   // Repeatable inventory groups: one row represents one similar set of computers.
   const inventoryContainer = document.querySelector('#inventory-groups');
   const addInventoryButton = document.querySelector('#add-inventory');
-  let inventoryCount = inventoryContainer ? inventoryContainer.querySelectorAll('[data-inventory-group]').length : 0;
-  const renumberInventoryGroup = (group, number) => {
-    const legend = group.querySelector('legend');
-    if (legend) legend.textContent = `Computer group ${number}`;
-    group.querySelectorAll('input, select, textarea').forEach((field) => {
-      const label = field.closest('label');
-      const labelText = label ? label.querySelector('span')?.textContent.trim() : '';
-      if (labelText) field.name = `Inventory ${number} - ${labelText.replace(/\\s*\\(.*?\\)\\s*/g, '')}`;
-    });
-    const remove = group.querySelector('[data-remove-inventory]');
-    if (remove) remove.hidden = number === 1 && inventoryContainer.children.length === 1;
-  };
   const refreshInventoryGroups = () => {
     if (!inventoryContainer) return;
     const groups = [...inventoryContainer.querySelectorAll('[data-inventory-group]')];
@@ -45,15 +34,15 @@
       const legend = group.querySelector('legend');
       if (legend) legend.textContent = `Computer group ${number}`;
       group.querySelectorAll('input, select, textarea').forEach((field) => {
-        const label = field.closest('label');
-        const labelText = label ? label.querySelector('span')?.textContent.trim().replace(/\\s*\\(.*?\\)\\s*/g, '') : '';
+        const labelText = field.closest('label')?.querySelector('span')?.textContent.trim()
+          .replace(/\\s*\\(.*?\\)\\s*/g, '');
         if (labelText) field.name = `Inventory ${number} - ${labelText}`;
       });
       const remove = group.querySelector('[data-remove-inventory]');
       if (remove) remove.hidden = groups.length === 1;
     });
-    inventoryCount = groups.length;
   };
+
   if (inventoryContainer && addInventoryButton) {
     inventoryContainer.querySelectorAll('[data-remove-inventory]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -83,34 +72,120 @@
   }
 
   const config = window.NKABE_SITE_CONFIG || {};
-  const accessKey = typeof config.contactFormAccessKey === 'string' ? config.contactFormAccessKey.trim() : '';
+  const supabaseUrl = typeof config.supabaseUrl === 'string' ? config.supabaseUrl.trim().replace(/\\/$/, '') : '';
+  const supabaseAnonKey = typeof config.supabaseAnonKey === 'string' ? config.supabaseAnonKey.trim() : '';
+
+  const value = (data, key) => {
+    const item = data.get(key);
+    return typeof item === 'string' ? item.trim() : '';
+  };
+
+  const buildPayload = (form) => {
+    const data = new FormData(form);
+    const formType = form.dataset.contactForm === 'pilot' ? 'pilot' : 'contact';
+
+    if (formType === 'contact') {
+      return {
+        form_type: 'contact',
+        name: value(data, 'name'),
+        email: value(data, 'email'),
+        organisation: value(data, 'organization'),
+        message: value(data, 'message'),
+        website: value(data, 'botcheck')
+      };
+    }
+
+    const computerGroups = [...form.querySelectorAll('[data-inventory-group]')].map((group) => {
+      const fields = {};
+      group.querySelectorAll('input, select, textarea').forEach((field) => {
+        const match = field.name.match(/^Inventory \\d+ - (.+)$/);
+        if (match) fields[match[1]] = field.value.trim();
+      });
+      return {
+        computer_type: fields['Computer type'] || '',
+        quantity: Number(fields['Quantity'] || 0),
+        manufacturer_model: fields['Manufacturer and model'] || '',
+        processor: fields['Processor'] || '',
+        ram: fields['Memory (RAM)'] || '',
+        storage: fields['Storage'] || '',
+        operating_system: fields['Operating system'] || '',
+        approximate_age: fields['Approximate age'] || '',
+        condition: fields['Physical / working condition'] || ''
+      };
+    });
+
+    return {
+      form_type: 'pilot',
+      contact_name: value(data, "Contact person's name"),
+      contact_email: value(data, 'Work email'),
+      phone_or_whatsapp: value(data, 'Phone / WhatsApp (optional)'),
+      contact_role: value(data, 'Your role (optional)'),
+      organisation_name: value(data, 'Organisation name'),
+      organisation_type: value(data, 'Organisation type'),
+      organisation_website: value(data, 'Website (optional)'),
+      town_city: value(data, 'Town / city'),
+      region_state: value(data, 'Region / state'),
+      country: value(data, 'Country'),
+      capabilities: [...form.querySelectorAll('input[name="Capabilities to explore"]:checked')].map((input) => input.value),
+      use_case: value(data, 'Describe the problem, workflow or opportunity you want to explore'),
+      computer_groups: computerGroups,
+      existing_inventory_link: value(data, 'Link to an existing computer inventory (optional — Google Drive, OneDrive or another share link)'),
+      local_network: value(data, 'Local network'),
+      internet_connectivity: value(data, 'Internet connectivity'),
+      networking_equipment: value(data, 'Networking equipment'),
+      computer_room_or_lab: value(data, 'Computer room / lab'),
+      electricity_reliability: value(data, 'Electricity'),
+      backup_power: value(data, 'Backup power'),
+      it_support_arrangement: value(data, 'Who provides IT support? (optional)'),
+      additional_information: value(data, 'Anything else we should know? (optional)'),
+      contact_permission: form.querySelector('input[name="Contact permission"]')?.checked === true,
+      website: value(data, 'botcheck')
+    };
+  };
+
   document.querySelectorAll('[data-contact-form]').forEach((form) => {
     const status = form.querySelector('[role="status"]');
     const submit = form.querySelector('button[type="submit"]');
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (!accessKey) { if (status) status.textContent = 'The form is not configured yet.'; return; }
       if (!form.reportValidity()) return;
-      const data = new FormData(form);
-      data.append('access_key', accessKey);
-      data.append('subject', form.dataset.formSubject || 'Nkabe website enquiry');
-      data.append('from_name', 'Nkabe website');
+      if (!supabaseUrl || !supabaseAnonKey) {
+        if (status) status.textContent = 'This form is temporarily unavailable. Please contact Nkabe directly.';
+        return;
+      }
+
       if (submit) { submit.disabled = true; submit.setAttribute('aria-busy', 'true'); }
-      if (status) status.textContent = 'Sending…';
+      if (status) status.textContent = 'Submitting securely…';
+
       try {
-        const response = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: data, headers: { Accept: 'application/json' } });
+        const response = await fetch(`${supabaseUrl}/functions/v1/submit-website-form`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          },
+          body: JSON.stringify(buildPayload(form))
+        });
         const result = await response.json().catch(() => ({}));
-        if (response.ok && result.success) {
-          form.reset();
-          if (status) status.textContent = 'Thank you — your expression of interest has been received. We’ll review it and be in touch if there is a suitable next step.';
-          if (inventoryContainer) {
-            const groups = [...inventoryContainer.querySelectorAll('[data-inventory-group]')];
-            groups.slice(1).forEach((group) => group.remove());
-            refreshInventoryGroups();
-          }
-        } else if (status) status.textContent = result.message || 'Sorry, something went wrong. Please try again.';
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Submission failed');
+        }
+
+        form.reset();
+        if (status) {
+          status.textContent = form.dataset.contactForm === 'pilot'
+            ? 'Thank you — your expression of interest has been received. We’ll review it and be in touch if there is a suitable next step.'
+            : 'Thank you — your message has been received. The Nkabe team will review it.';
+        }
+        if (inventoryContainer) {
+          const groups = [...inventoryContainer.querySelectorAll('[data-inventory-group]')];
+          groups.slice(1).forEach((group) => group.remove());
+          refreshInventoryGroups();
+        }
       } catch (error) {
-        if (status) status.textContent = 'Network error. Please try again.';
+        if (status) status.textContent = 'Sorry, we could not submit your information. Please try again or contact Nkabe directly.';
       } finally {
         if (submit) { submit.disabled = false; submit.removeAttribute('aria-busy'); }
       }
