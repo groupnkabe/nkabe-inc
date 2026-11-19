@@ -2,7 +2,7 @@
 
 A responsive, static website for NKABE with **nKABE OS** as the flagship product. No build step, server, database, tracking pixel, or analytics dependency is required.
 
-## Before public launch
+##  Before public launch
 
 1. **Confirm legal name.** The public-facing brand currently says `NKABE`, not `NKABE, Inc.`. Because the Delaware entity's formation status has not been confirmed in this work session, do not represent the corporation as formed unless that is accurate. After formation, update copy only as approved by counsel.
 2. **Contact form.** The contact section posts to Web3Forms (`https://api.web3forms.com/submit`) using the access key in `site-config.js` (`contactFormAccessKey`). The destination inbox is set inside the Web3Forms account, so no email address is stored in this repository or exposed to visitors. Confirm the key before launch.
