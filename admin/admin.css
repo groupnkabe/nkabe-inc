@@ -2,9 +2,9 @@
 .admin-body { min-height:100vh; background:#F2F5F9; }
 .admin-shell { min-height:100vh; display:grid; grid-template-columns:252px minmax(0,1fr); }
 .admin-sidebar { background:var(--midnight); color:#fff; padding:28px 18px 22px; display:flex; flex-direction:column; min-height:100vh; position:sticky; top:0; height:100vh; }
-.admin-brand { display:flex; align-items:center; gap:12px; padding:4px 10px 34px; color:#fff; font:700 19px var(--font-display); letter-spacing:-.04em; }
+.admin-brand { display:flex; align-items:center; gap:12px; padding:12px 10px; margin-bottom:24px; background:#fff; color:var(--midnight); border-radius:4px; font:700 19px var(--font-display); letter-spacing:-.04em; }
 .admin-brand img { width:35px; height:35px; object-fit:contain; }
-.admin-brand small { display:block; color:#91A5BE; font:700 9px var(--font-body); letter-spacing:.15em; margin-top:3px; }
+.admin-brand small { display:block; color:#64748B; font:700 9px var(--font-body); letter-spacing:.15em; margin-top:3px; }
 .admin-sidebar-label,.admin-overline { color:var(--accessible-cyan); font-size:10px; font-weight:700; letter-spacing:.15em; }
 .admin-sidebar-label { color:#91A5BE; padding:0 12px 12px; }
 .admin-nav { display:grid; gap:5px; }
