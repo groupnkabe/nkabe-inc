@@ -548,3 +548,36 @@ h1 em, h2 em { color: var(--accessible-cyan); font-style: normal; }
 @media (min-width: 681px) {
   .footer-main { grid-template-columns:220px minmax(0, 1fr) auto; align-items:center; }
 }
+
+
+/* Pilot expression-of-interest and inventory form */
+.pilot-form { max-width: 760px; }
+.pilot-form-section { padding: 0 0 34px; margin: 0 0 34px; border-bottom: 1px solid rgba(226,232,240,.2); }
+.pilot-form-section h2 { color: var(--white); font-size: clamp(25px, 3vw, 32px); line-height: 1.2; letter-spacing: -.045em; margin: 0 0 18px; }
+.pilot-form-index { color: #8DEAF7 !important; font-size: 10px !important; font-weight: 700; letter-spacing: .14em; margin: 0 0 10px !important; }
+.pilot-form-help { color: #B9C8D8 !important; font-size: 13px !important; line-height: 1.75 !important; margin: -5px 0 18px !important; }
+.pilot-process-note { margin-top: 30px; padding-top: 22px; border-top: 1px solid rgba(226,232,240,.2); color: #DCE6F0; font-size: 13px; }
+.pilot-process-note strong { color: var(--white); }
+.pilot-process-note ul { padding-left: 19px; color: #C3CEDB; line-height: 1.9; }
+.pilot-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pilot-choice, .pilot-consent { display: flex; align-items: flex-start; gap: 10px; color: #E2EAF3; font-size: 13px; line-height: 1.55; cursor: pointer; }
+.pilot-choice { min-height: 54px; padding: 12px; border: 1px solid #53677F; background: #0A2145; }
+.pilot-choice input, .pilot-consent input { width: 17px; height: 17px; flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--cyan); }
+.pilot-field-spaced { margin-top: 19px; }
+.inventory-groups { display: grid; gap: 16px; }
+.inventory-group { min-width: 0; margin: 0; padding: 20px; border: 1px solid #53677F; background: #0A2145; }
+.inventory-group legend { padding: 0 9px; color: #8DEAF7; font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.inventory-remove { margin-top: 15px; padding: 7px 0; border: 0; background: transparent; color: #8DEAF7; font: inherit; font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.inventory-add { margin-top: 15px; border-color: #8CA0B7; color: var(--white); }
+.inventory-add:hover { background: #16345A; border-color: var(--cyan); }
+.inventory-note { margin: 12px 0 0; color: #AFC0D2; font-size: 12px; line-height: 1.7; }
+.pilot-consent { margin-top: 23px; padding: 15px; border: 1px solid #53677F; background: #0A2145; }
+.pilot-form .contact-actions { align-items: flex-start; flex-direction: column; }
+.pilot-form .contact-note { max-width: 100%; line-height: 1.6; }
+.pilot-form button:disabled { cursor: wait; opacity: .65; }
+@media (max-width: 680px) {
+  .pilot-choice-grid, .inventory-grid { grid-template-columns: 1fr; }
+  .inventory-group { padding: 17px 14px; }
+  .pilot-form-section { padding-bottom: 27px; margin-bottom: 27px; }
+}

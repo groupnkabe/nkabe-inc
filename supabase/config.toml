@@ -1,0 +1,2 @@
+[functions.submit-website-form]
+verify_jwt = false

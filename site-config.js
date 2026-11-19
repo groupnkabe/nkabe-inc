@@ -1,6 +1,8 @@
-/* Public configuration for the Nkabe website.
-   The Web3Forms access key is a public form-submission key; the destination inbox is managed by Web3Forms. */
+/* Public browser configuration.
+   The Supabase anon/publishable key is intended for public clients.
+   NEVER put the Supabase service_role key in this file. */
 window.NKABE_SITE_CONFIG = {
-  contactFormAccessKey: "61cde140-8dd4-4f83-8f9b-b3c2af35c06d",
+  supabaseUrl: "https://cgmlxhyjyungszfaentm.supabase.co",
+  supabaseAnonKey: "sb_publishable_S0wMlUptXQEjLz4-q-scIw_h1uUu1Qa",
   publicLegalName: "Nkabe Inc."
 };
