@@ -299,3 +299,45 @@
     scroll-behavior:auto !important; transition:none !important; animation:none !important;
   }
 }
+
+
+/* Owner team access workspace */
+.admin-team-intro { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin:8px 0 26px; }
+.admin-team-intro h2 { margin:5px 0 8px; font:700 clamp(25px,3vw,34px)/1.2 Manrope,sans-serif; color:var(--midnight); }
+.admin-team-intro p:not(.admin-overline) { max-width:650px; margin:0; color:var(--steel); line-height:1.65; }
+.admin-team-invite { display:grid; grid-template-columns:minmax(220px,.8fr) minmax(320px,1.2fr); gap:28px; padding:26px; border:1px solid var(--line); border-radius:18px; background:var(--white); box-shadow:0 8px 28px rgba(6,26,58,.045); }
+.admin-team-invite h3,.admin-team-list-section h3 { margin:5px 0 8px; color:var(--midnight); font:700 20px/1.3 Manrope,sans-serif; }
+.admin-team-invite > div > p:last-child { margin:0; max-width:340px; color:var(--steel); font-size:13px; line-height:1.65; }
+#team-invite-form { display:grid; grid-template-columns:1fr 1fr; gap:13px; align-content:start; }
+#team-invite-form label { display:grid; gap:7px; color:var(--deep-navy); font-size:12px; font-weight:700; }
+#team-invite-form input,#team-invite-form select { width:100%; min-width:0; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--midnight); font:500 13px "DM Sans",sans-serif; }
+#team-invite-form label:first-child,#team-invite-form label:nth-child(2) { grid-column:span 1; }
+#team-invite-form button,#team-invite-status { grid-column:1/-1; }
+#team-invite-form button { justify-self:start; min-width:180px; }
+#team-invite-status { margin:0; min-height:18px; }
+.admin-team-list-section { margin-top:30px; }
+.admin-team-list-section .admin-section-heading { margin-bottom:14px; }
+.admin-team-table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:#fff; }
+.admin-team-table { width:100%; border-collapse:collapse; min-width:760px; text-align:left; }
+.admin-team-table th { padding:13px 16px; background:#F8FAFC; color:var(--steel); font-size:10px; letter-spacing:.08em; font-weight:700; }
+.admin-team-table td { padding:15px 16px; border-top:1px solid var(--line); color:var(--deep-navy); font-size:13px; vertical-align:middle; }
+.admin-team-table td:first-child strong,.admin-team-table td:first-child small { display:block; }
+.admin-team-table td:first-child strong { font-size:13px; }
+.admin-team-table td:first-child small { margin-top:4px; color:var(--steel); font-size:12px; }
+.admin-team-role.owner { display:inline-flex; padding:6px 10px; border-radius:999px; background:#EAF8FC; color:#006B83; font-size:11px; font-weight:700; }
+.admin-team-role-select { min-height:34px; padding:5px 9px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--deep-navy); font:600 12px "DM Sans",sans-serif; }
+.admin-team-state { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; white-space:nowrap; }
+.admin-team-state::before { content:""; width:7px; height:7px; border-radius:50%; background:#94A3B8; }
+.admin-team-state.active::before { background:#16A36A; }
+.admin-team-state.inactive { color:#64748B; }
+.admin-team-toggle { padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--deep-navy); font:600 11px "DM Sans",sans-serif; cursor:pointer; }
+.admin-team-toggle:hover { border-color:var(--accessible-cyan); color:var(--accessible-cyan); }
+.admin-team-toggle.is-active { color:#A33D36; }
+.admin-team-security-note { margin:18px 0 0; padding:13px 15px; border-left:3px solid var(--cyan); background:#F4FAFC; color:var(--steel); font-size:12px; line-height:1.6; }
+@media(max-width:760px) {
+  .admin-team-invite { grid-template-columns:1fr; gap:20px; padding:19px; }
+  #team-invite-form { grid-template-columns:1fr; }
+  #team-invite-form label:first-child,#team-invite-form label:nth-child(2) { grid-column:auto; }
+  .admin-team-intro { margin-bottom:18px; }
+  .admin-team-list-section .admin-section-heading { align-items:flex-start; }
+}
