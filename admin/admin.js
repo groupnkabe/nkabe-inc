@@ -153,7 +153,29 @@ async function renderDetail(key) {
     {message_type:'inbound',body:kind === 'contact' ? record.message : record.use_case,subject:kind === 'pilot' ? 'Pilot application received' : 'Contact enquiry received',created_at:record.submitted_at,created_by:null},
     ...thread
   ].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
-  const timelineHtml = timeline.map((m) => `<article class="admin-message ${m.message_type}"><div class="admin-message-head"><strong>${m.message_type === 'inbound' ? 'Received from ' + escapeHtml(person(record,kind)) : m.message_type === 'internal_note' ? 'Internal note · ' + escapeHtml(m.created_by === state.user.id ? (state.profile.display_name || state.user.email) : 'Nkabe staff') : 'Reply draft · ' + escapeHtml(m.created_by === state.user.id ? (state.profile.display_name || state.user.email) : 'Nkabe staff')}</strong><time>${escapeHtml(dateLabel(m.created_at))}</time></div>${m.subject ? '<small>' + escapeHtml(m.subject) + '</small>' : ''}<p>${escapeHtml(m.body)}</p>${m.message_type === 'outbound' ? '<small>Not sent · email delivery will be enabled in the next phase</small>' : ''}</article>`).join('');
+  const canManageEmail = ['owner','admin'].includes(state.profile?.role);
+  let emailReady = false;
+  if (canManageEmail && thread.some((m) => m.message_type === 'outbound' && ['not_configured','failed'].includes(m.delivery_status))) {
+    const readiness = await supabase.functions.invoke('send-admin-email', { body: { action: 'status' } });
+    emailReady = readiness.data?.configured === true;
+  }
+  const timelineHtml = timeline.map((m) => {
+    const sender = m.created_by === state.user.id ? (state.profile.display_name || state.user.email) : 'Nkabe staff';
+    const heading = m.message_type === 'inbound' ? 'Received from ' + escapeHtml(person(record,kind)) : m.message_type === 'internal_note' ? 'Internal note · ' + escapeHtml(sender) : 'Email reply · ' + escapeHtml(sender);
+    let delivery = '';
+    if (m.message_type === 'outbound') {
+      if (m.delivery_status === 'sent') delivery = '<small class="admin-email-status sent">Sent' + (m.sent_at ? ' · ' + escapeHtml(dateLabel(m.sent_at)) : '') + '</small>';
+      else if (m.delivery_status === 'sending') delivery = '<small class="admin-email-status">Sending…</small>';
+      else if (m.delivery_status === 'failed') delivery = '<small class="admin-email-status failed">Delivery failed · review before retrying</small>';
+      else delivery = '<small class="admin-email-status">Draft · not sent</small>';
+      if (canManageEmail && ['not_configured','failed'].includes(m.delivery_status)) {
+        delivery += emailReady
+          ? '<div class="admin-composer-actions"><button class="admin-primary admin-send-email" type="button" data-send-email="' + escapeHtml(m.id) + '">Send email <span>↗</span></button></div>'
+          : '<small class="admin-email-status">Sending is unavailable until the Nkabe email provider is configured.</small>';
+      }
+    }
+    return '<article class="admin-message ' + m.message_type + '"><div class="admin-message-head"><strong>' + heading + '</strong><time>' + escapeHtml(dateLabel(m.created_at)) + '</time></div>' + (m.subject ? '<small>' + escapeHtml(m.subject) + '</small>' : '') + '<p>' + escapeHtml(m.body) + '</p>' + delivery + '</article>';
+  }).join('');
   $('#detail-panel').innerHTML = `
     <header class="admin-detail-head"><div class="admin-detail-head-top"><div><span class="admin-kind">${kind === 'pilot' ? 'PILOT APPLICATION' : 'CONTACT ENQUIRY'}</span><h3>${escapeHtml(person(record,kind))}</h3><p>${escapeHtml(org(record,kind) || email(record,kind))} · <a href="mailto:${escapeHtml(email(record,kind))}">${escapeHtml(email(record,kind))}</a></p></div><span class="admin-status ${escapeHtml(record.status)}">${escapeHtml(pretty(record.status))}</span></div><div class="admin-detail-controls"><label for="record-status">STATUS</label><select id="record-status">${statusOpts}</select></div></header>
     <div class="admin-detail-content"><div class="admin-info-grid">${fieldHtml}</div>
@@ -173,6 +195,20 @@ async function renderDetail(key) {
   $('#note-form').addEventListener('submit', (event) => saveConversation(event,kind,id,'internal_note'));
   const replyForm = $('#reply-form');
   if (replyForm) replyForm.addEventListener('submit', (event) => saveConversation(event,kind,id,'outbound'));
+  document.querySelectorAll('[data-send-email]').forEach((button) => button.addEventListener('click', async () => {
+    const messageId = button.dataset.sendEmail;
+    if (!messageId || !window.confirm('Send this email to the address on the original enquiry?')) return;
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    const { data, error } = await supabase.functions.invoke('send-admin-email', { body: { action: 'send', message_id: messageId } });
+    if (error || !data?.success) {
+      toast(data?.error || error?.message || 'Email could not be sent.');
+      await loadData();
+      return;
+    }
+    toast(data.warning || 'Email accepted by the provider.');
+    await loadData();
+  }));
 }
 async function saveConversation(event,kind,id,messageType) {
   event.preventDefault();
