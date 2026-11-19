@@ -22,12 +22,18 @@ const statusOptions = (kind) => kind === 'contact' ? contactStatuses : pilotStat
 
 function showLogin(message = '') {
   document.body.classList.add('admin-logged-out');
+  $('.admin-sidebar').hidden = true;
+  $('.admin-topbar').hidden = true;
+  $('.admin-footer').hidden = true;
   $('#login-view').hidden = false;
   $('#workspace-view').hidden = true;
   $('#login-status').textContent = message;
 }
 function showWorkspace() {
   document.body.classList.remove('admin-logged-out');
+  $('.admin-sidebar').hidden = false;
+  $('.admin-topbar').hidden = false;
+  $('.admin-footer').hidden = false;
   $('#login-view').hidden = true;
   $('#workspace-view').hidden = false;
   $('#user-email').textContent = state.user?.email || 'Staff';
