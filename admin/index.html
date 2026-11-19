@@ -17,7 +17,7 @@
 </head>
 <body class="admin-body admin-logged-out">
 <div class="admin-shell">
-  <aside class="admin-sidebar" aria-label="Admin navigation">
+  <aside class="admin-sidebar" hidden aria-label="Admin navigation">
     <a class="admin-brand" href="https://nkabe.us/"><img src="https://nkabe.us/assets/nkabe-inc-mark.webp" alt=""><span>Nkabe <small>ADMIN WORKSPACE</small></span></a>
     <div class="admin-sidebar-label">WORKSPACE</div>
     <nav class="admin-nav">
@@ -33,12 +33,12 @@
   </aside>
 
   <main class="admin-main">
-    <header class="admin-topbar">
+    <header class="admin-topbar" hidden>
       <div><p class="admin-overline">NKABE INC. / OPERATIONS</p><h1 id="page-title">Overview</h1></div>
       <div class="admin-user"><span class="admin-avatar" id="user-avatar">N</span><span><strong id="user-email">Not signed in</strong><small id="user-role">Staff access</small></span></div>
     </header>
 
-    <section id="login-view" class="admin-login" hidden>
+    <section id="login-view" class="admin-login">
       <div class="admin-login-card">
         <h2>Admin sign in</h2>
         <form id="login-form">
@@ -75,7 +75,7 @@
       </div>
     </section>
     <div id="global-status" class="admin-toast" role="status" aria-live="polite"></div>
-    <footer class="admin-footer">NKABE INC. <span>PRIVATE STAFF WORKSPACE</span></footer>
+    <footer class="admin-footer" hidden>NKABE INC. <span>PRIVATE STAFF WORKSPACE</span></footer>
   </main>
 </div>
 </body>
