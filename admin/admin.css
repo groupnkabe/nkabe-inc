@@ -158,3 +158,15 @@
  .admin-info-grid { grid-template-columns:1fr; }
  .admin-info-wide { grid-column:auto; }
 }
+
+/* Keep the unauthenticated surface limited to the sign-in form. */
+.admin-body.admin-logged-out { background:var(--alabaster, #F8FAFC); }
+.admin-logged-out .admin-sidebar,
+.admin-logged-out .admin-topbar,
+.admin-logged-out .admin-footer,
+.admin-logged-out .admin-toast { display:none !important; }
+.admin-logged-out .admin-shell { display:block; min-height:100vh; }
+.admin-logged-out .admin-main { min-height:100vh; padding:0 20px; display:grid; place-items:center; }
+.admin-logged-out .admin-login { width:100%; min-height:100vh; }
+.admin-logged-out .admin-login-card { box-shadow:0 18px 55px #061A3A0D; }
+.admin-logged-out .admin-login-foot { display:none; }
