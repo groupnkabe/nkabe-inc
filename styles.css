@@ -499,3 +499,24 @@ h1 em, h2 em { color: var(--accessible-cyan); font-style: normal; }
 }
 
 .contact-heading h1 em { color: #57D9ED; font-style: normal; }
+
+
+/* Corporate refinements: restrained language, clear brand presentation and updates */
+.hero-visual { background: #FFFFFF; }
+.hero-mark { width: min(82%, 390px); max-height: 300px; object-fit: contain; }
+.latest-updates { display: grid; grid-template-columns: .75fr 1.25fr; gap: 8%; align-items: center; padding-top: 78px; padding-bottom: 82px; background: #F1F5F9; }
+.latest-updates h2 { font-size: clamp(39px, 5vw, 58px); line-height: 1.12; letter-spacing: -.06em; margin: 0; }
+.latest-updates h2 em { color: var(--accessible-cyan); font-style: normal; }
+.latest-updates > div:last-child > p { max-width: 600px; color: var(--steel); line-height: 1.85; }
+.updates-section { padding-top: 35px; padding-bottom: 110px; }
+.update-card { max-width: 900px; padding: clamp(25px, 5vw, 55px); background: #FFFFFF; border: 1px solid var(--line); }
+.update-meta { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 22px; color: var(--accessible-cyan); font-size: 11px; font-weight: 700; letter-spacing: .09em; }
+.update-meta time { color: #64748B; font-weight: 500; letter-spacing: 0; }
+.update-card h2 { font-size: clamp(29px, 4vw, 42px); line-height: 1.15; letter-spacing: -.05em; margin-bottom: 18px; }
+.update-card p { max-width: 760px; color: var(--steel); font-size: 15px; line-height: 1.85; }
+.update-card .button { margin-top: 8px; }
+@media (max-width: 680px) {
+  .latest-updates { grid-template-columns: 1fr; gap: 20px; padding-top: 65px; padding-bottom: 68px; }
+  .updates-section { padding-top: 10px; padding-bottom: 75px; }
+  .update-card { padding: 24px 20px; }
+}
