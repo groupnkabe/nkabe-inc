@@ -46,9 +46,11 @@ Deno.serve(async (request) => {
 
   if (request.method !== "POST") return response({ success: false, error: "Method not allowed." }, 405, origin);
 
-  const apiKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  // Supabase's API gateway validates the public API key. Require the header here
+  // as well, but do not compare it to a legacy anon-key environment variable:
+  // projects may use either the legacy anon key or a publishable key.
   const suppliedKey = request.headers.get("apikey") ?? "";
-  if (!apiKey || suppliedKey !== apiKey) return response({ success: false, error: "Invalid client configuration." }, 401, origin);
+  if (!suppliedKey) return response({ success: false, error: "Missing public API key." }, 401, origin);
 
   const rawBody = await request.text();
   if (rawBody.length > 60000) return response({ success: false, error: "Submission is too large." }, 413, origin);
