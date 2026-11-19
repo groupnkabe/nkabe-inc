@@ -99,7 +99,7 @@ Deno.serve(async (request: Request) => {
 
   if (draftError || !draft) return reply({ error: "Email draft not found." }, 404, origin);
   if (draft.message_type !== "outbound" || draft.channel !== "email") return reply({ error: "Only email drafts can be sent." }, 400, origin);
-  if (!["not_configured", "failed"].includes(draft.delivery_status)) {
+  if (!["draft", "not_configured", "failed"].includes(draft.delivery_status)) {
     return reply({ error: "This email is not in a sendable state. Refresh the conversation." }, 409, origin);
   }
 
