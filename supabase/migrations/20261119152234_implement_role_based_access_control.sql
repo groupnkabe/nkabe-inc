@@ -1,6 +1,9 @@
 -- Role-aware access rules for the Nkabe private admin workspace.
 -- Applied to the live Supabase project as implement_role_based_access_control.
 
+alter table public.admin_users
+  add constraint admin_users_role_check check (role in ('owner','admin','staff'));
+
 drop policy if exists "Admin users can read own access" on public.admin_users;
 drop policy if exists "Users can read their own active access" on public.admin_users;
 create policy "Users can read their own active access"
