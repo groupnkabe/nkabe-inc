@@ -293,6 +293,7 @@ document.querySelectorAll('[data-open-view]').forEach((button) => button.addEven
 $('#inbox-search').addEventListener('input',renderInbox);
 $('#status-filter').addEventListener('change',renderInbox);
 $('#refresh-data').addEventListener('click',async()=>{try{await loadData();toast('Workspace refreshed.');}catch(e){toast('Refresh failed.');}});
+$('#refresh-team').addEventListener('click',loadTeam);
 $('#login-form').addEventListener('submit',async(event)=>{
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"]');
