@@ -155,7 +155,7 @@ async function renderDetail(key) {
   ].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
   const canManageEmail = ['owner','admin'].includes(state.profile?.role);
   let emailReady = false;
-  if (canManageEmail && thread.some((m) => m.message_type === 'outbound' && ['not_configured','failed'].includes(m.delivery_status))) {
+  if (canManageEmail && thread.some((m) => m.message_type === 'outbound' && ['draft','not_configured','failed'].includes(m.delivery_status))) {
     const readiness = await supabase.functions.invoke('send-admin-email', { body: { action: 'status' } });
     emailReady = readiness.data?.configured === true;
   }
@@ -168,7 +168,7 @@ async function renderDetail(key) {
       else if (m.delivery_status === 'sending') delivery = '<small class="admin-email-status">Sending…</small>';
       else if (m.delivery_status === 'failed') delivery = '<small class="admin-email-status failed">Delivery failed · review before retrying</small>';
       else delivery = '<small class="admin-email-status">Draft · not sent</small>';
-      if (canManageEmail && ['not_configured','failed'].includes(m.delivery_status)) {
+      if (canManageEmail && ['draft','not_configured','failed'].includes(m.delivery_status)) {
         delivery += emailReady
           ? '<div class="admin-composer-actions"><button class="admin-primary admin-send-email" type="button" data-send-email="' + escapeHtml(m.id) + '">Send email <span>↗</span></button></div>'
           : '<small class="admin-email-status">Sending is unavailable until the Nkabe email provider is configured.</small>';
