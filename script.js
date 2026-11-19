@@ -22,6 +22,66 @@
     window.addEventListener('resize', () => { if (window.innerWidth > 680) closeNav(); });
   }
 
+  // Repeatable inventory groups: one row represents one similar set of computers.
+  const inventoryContainer = document.querySelector('#inventory-groups');
+  const addInventoryButton = document.querySelector('#add-inventory');
+  let inventoryCount = inventoryContainer ? inventoryContainer.querySelectorAll('[data-inventory-group]').length : 0;
+  const renumberInventoryGroup = (group, number) => {
+    const legend = group.querySelector('legend');
+    if (legend) legend.textContent = `Computer group ${number}`;
+    group.querySelectorAll('input, select, textarea').forEach((field) => {
+      const label = field.closest('label');
+      const labelText = label ? label.querySelector('span')?.textContent.trim() : '';
+      if (labelText) field.name = `Inventory ${number} - ${labelText.replace(/\\s*\\(.*?\\)\\s*/g, '')}`;
+    });
+    const remove = group.querySelector('[data-remove-inventory]');
+    if (remove) remove.hidden = number === 1 && inventoryContainer.children.length === 1;
+  };
+  const refreshInventoryGroups = () => {
+    if (!inventoryContainer) return;
+    const groups = [...inventoryContainer.querySelectorAll('[data-inventory-group]')];
+    groups.forEach((group, index) => {
+      const number = index + 1;
+      const legend = group.querySelector('legend');
+      if (legend) legend.textContent = `Computer group ${number}`;
+      group.querySelectorAll('input, select, textarea').forEach((field) => {
+        const label = field.closest('label');
+        const labelText = label ? label.querySelector('span')?.textContent.trim().replace(/\\s*\\(.*?\\)\\s*/g, '') : '';
+        if (labelText) field.name = `Inventory ${number} - ${labelText}`;
+      });
+      const remove = group.querySelector('[data-remove-inventory]');
+      if (remove) remove.hidden = groups.length === 1;
+    });
+    inventoryCount = groups.length;
+  };
+  if (inventoryContainer && addInventoryButton) {
+    inventoryContainer.querySelectorAll('[data-remove-inventory]').forEach((button) => {
+      button.addEventListener('click', () => {
+        button.closest('[data-inventory-group]')?.remove();
+        refreshInventoryGroups();
+      });
+    });
+    addInventoryButton.addEventListener('click', () => {
+      const source = inventoryContainer.querySelector('[data-inventory-group]');
+      if (!source) return;
+      const clone = source.cloneNode(true);
+      clone.querySelectorAll('input').forEach((field) => { field.value = ''; });
+      clone.querySelectorAll('select').forEach((field) => { field.selectedIndex = 0; });
+      const remove = clone.querySelector('[data-remove-inventory]');
+      if (remove) {
+        remove.hidden = false;
+        remove.addEventListener('click', () => {
+          clone.remove();
+          refreshInventoryGroups();
+        });
+      }
+      inventoryContainer.appendChild(clone);
+      refreshInventoryGroups();
+      clone.querySelector('select')?.focus();
+    });
+    refreshInventoryGroups();
+  }
+
   const config = window.NKABE_SITE_CONFIG || {};
   const accessKey = typeof config.contactFormAccessKey === 'string' ? config.contactFormAccessKey.trim() : '';
   document.querySelectorAll('[data-contact-form]').forEach((form) => {
@@ -42,8 +102,13 @@
         const result = await response.json().catch(() => ({}));
         if (response.ok && result.success) {
           form.reset();
-          if (status) status.textContent = 'Thank you — your message has been sent. We’ll be in touch.';
-        } else if (status) status.textContent = 'Sorry, something went wrong. Please try again.';
+          if (status) status.textContent = 'Thank you — your expression of interest has been received. We’ll review it and be in touch if there is a suitable next step.';
+          if (inventoryContainer) {
+            const groups = [...inventoryContainer.querySelectorAll('[data-inventory-group]')];
+            groups.slice(1).forEach((group) => group.remove());
+            refreshInventoryGroups();
+          }
+        } else if (status) status.textContent = result.message || 'Sorry, something went wrong. Please try again.';
       } catch (error) {
         if (status) status.textContent = 'Network error. Please try again.';
       } finally {
