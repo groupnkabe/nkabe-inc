@@ -348,5 +348,8 @@ supabase.auth.onAuthStateChange((_event,session)=>{
   if (_event === 'PASSWORD_RECOVERY') { state.recoveryMode = true; showLogin('Choose a new password for your Nkabe admin account.'); }
 });
 const {data:{session}} = await supabase.auth.getSession();
-if (state.recoveryMode) showLogin('Choose a new password for your Nkabe admin account.');
-else await checkAccess(session);
+const inviteFlow = new URLSearchParams(window.location.hash.slice(1)).get('type') === 'invite';
+if (state.recoveryMode || inviteFlow) {
+  state.recoveryMode = true;
+  showLogin(inviteFlow ? 'Set a password to finish activating your Nkabe workspace account.' : 'Choose a new password for your Nkabe admin account.');
+} else await checkAccess(session);
