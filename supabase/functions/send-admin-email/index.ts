@@ -79,7 +79,7 @@ Deno.serve(async (request: Request) => {
 
   const action = typeof payload.action === "string" ? payload.action : "";
   const apiKey = Deno.env.get("RESEND_API_KEY") ?? "";
-  const from = Deno.env.get("NKABE_EMAIL_FROM") ?? "";
+  const from = Deno.env.get("NKABE_EMAIL_FROM") ?? "Nkabe Inc <no-reply@nkabe.us>";
   const replyTo = Deno.env.get("NKABE_EMAIL_REPLY_TO") ?? "";
 
   if (action === "status") {
