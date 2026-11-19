@@ -245,4 +245,5 @@ supabase.auth.onAuthStateChange((_event,session)=>{
   if (_event === 'PASSWORD_RECOVERY') { state.recoveryMode = true; showLogin('Choose a new password for your Nkabe admin account.'); }
 });
 const {data:{session}} = await supabase.auth.getSession();
-await checkAccess(session);
+if (state.recoveryMode) showLogin('Choose a new password for your Nkabe admin account.');
+else await checkAccess(session);
