@@ -26,7 +26,7 @@ jobs:
       - name: Prepare public site files only
         run: |
           mkdir -p _site/assets
-          cp index.html styles.css script.js site-config.js robots.txt _headers .nojekyll _site/
+          cp *.html styles.css script.js site-config.js robots.txt sitemap.xml _headers .nojekyll _site/
           cp assets/* _site/assets/
       - name: Configure Pages
         uses: actions/configure-pages@v5

@@ -1,46 +1,36 @@
-# NKABE — corporate website (temporary deployment package)
+# Nkabe — official website
 
-A responsive, static website for NKABE with **nKABE OS** as the flagship product. No build step, server, database, tracking pixel, or analytics dependency is required.
+A responsive, lightweight, multi-page static website for Nkabe, the public-facing brand of Nkabe Inc. It introduces the company, its approach to building practical technology ventures, nKABE OS as its flagship venture, and a dedicated pilot-interest pathway. The site has no build step or runtime dependencies.
 
-##  Before public launch
+## Site architecture
 
-1. **Confirm legal name.** The public-facing brand currently says `NKABE`, not `NKABE, Inc.`. Because the Delaware entity's formation status has not been confirmed in this work session, do not represent the corporation as formed unless that is accurate. After formation, update copy only as approved by counsel.
-2. **Contact form.** The contact section posts to Web3Forms (`https://api.web3forms.com/submit`) using the access key in `site-config.js` (`contactFormAccessKey`). The destination inbox is set inside the Web3Forms account, so no email address is stored in this repository or exposed to visitors. Confirm the key before launch.
-3. **Review all product claims.** Copy distinguishes the current prototype/hardware-validation phase from planned pilots and future platform services. Keep that distinction.
-4. **Domain.** No custom domain is configured because `nkabe.com` acquisition remains unresolved. Use the host's temporary URL until a domain is under company control.
+- `index.html` — company-first homepage
+- `about.html` — company identity, beliefs and ambition
+- `approach.html` — how Nkabe identifies, develops and validates opportunities
+- `products.html` — products and ventures, led by nKABE OS
+- `contact.html` — general business and partnership enquiries
+- `pilot.html` — dedicated pilot-interest information and form
 
-## Option A — Cloudflare Pages via Git integration (recommended for ongoing updates)
+All pages share the corporate navigation, footer, responsive styles, brand assets and lightweight JavaScript.
 
-1. Create a GitHub repository and push this folder to its `main` branch.
-2. In Cloudflare, open **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
-3. Select the repository. Framework preset: **None**. Build command: `exit 0`. Build output directory: `.` (repository root).
-4. Deploy. Cloudflare will issue a `*.pages.dev` address and can redeploy each time `main` is updated.
+## Deployment and preview safety
 
-Avoid starting with Cloudflare's *Direct Upload* if you want a Git-connected project later: Cloudflare says a Direct Upload project cannot later be switched to Git integration; a separate project would be needed.
+The site is hosted with GitHub Pages and uses the custom domain `https://nkabe.us` (configured in `CNAME`). The workflow at `.github/workflows/pages.yml` publishes all root-level HTML pages and required static assets when changes are pushed to `main`, or when manually started from the Actions tab.
 
-## Option B — GitHub Pages
+Feature-branch pushes do not trigger deployment. Do not manually run the Pages workflow from a feature branch: a manual run deploys the selected branch to the repository's production Pages environment and custom domain. Review and merge approved changes into `main` to publish.
 
-The `.github/workflows/pages.yml` workflow publishes the repository root on pushes to `main`.
+The current work is being developed on `phase-1.1/corporate-multipage`, based on the preserved `phase-1/multipage-corporate-site` branch. Neither the source branch nor `main` should be modified as part of this work.
 
-1. Push the folder to a repository on GitHub.
-2. In repository **Settings → Pages**, set the source to **GitHub Actions**.
-3. Confirm the Pages workflow runs successfully. GitHub will show the published URL in the workflow/Pages settings.
+## Contact and pilot forms
 
-For a company website, prefer a clean project/repository name, e.g. `nkabe-website`. The resulting project URL will include the repository name. Do not add `CNAME` until using a domain that NKABE controls.
+Both forms post directly to Web3Forms at `https://api.web3forms.com/submit`. The public access key is configured in `site-config.js` as `contactFormAccessKey`; the destination inbox is managed by Web3Forms and is not included in this repository. The shared form handler uses each form's `data-form-subject` value to distinguish general enquiries from pilot interest. Required-field validation and accessible status messages are retained.
 
-## Files
+## SEO and assets
 
-- `index.html` — page content and metadata
-- `styles.css` — responsive visual system and layout
-- `script.js` — mobile navigation and Web3Forms contact-form submission
-- `site-config.js` — public settings (Web3Forms access key, display options)
-- `assets/nkabe-os-mark.webp` — supplied nKABE OS mark, optimized for the web
-- `assets/nkabe-inc-mark.webp` — NKABE Inc. logo mark (transparent), shown beside the "NKABE Inc" text wordmark in the header and footer
-- `assets/nkabe-inc-mark.png` — NKABE Inc. logo mark (transparent PNG fallback)
-- `assets/favicon.ico`, `assets/favicon-32.png`, `assets/favicon-16.png`, `assets/apple-touch-icon.png` — favicons generated from the transparent NKABE Inc. logo mark
-- `_headers` — security headers for Cloudflare Pages
-- `.github/workflows/pages.yml` — GitHub Pages deployment workflow
+Each page has a distinct title, description, canonical URL and social-sharing metadata. `sitemap.xml` lists the public pages and `robots.txt` references it. Existing logos, favicon files, Apple touch icon and `CNAME` are preserved.
 
-## Scope
+## Content notes
 
-The site is a corporate-facing one-page introduction. It intentionally does not claim paying customers, revenue, broad production deployment, or finished cloud/remote-management services. Update the roadmap as evidence changes.
+Nkabe is the public-facing technology brand; Nkabe Inc. is the legal entity. nKABE OS is presented as the flagship venture and described as in development. Its capability areas are framed as development work, not claims of completed operational functionality. The site does not claim customers, revenue, partnerships, deployments or market leadership.
+
+The repository's `_headers` file is retained as project configuration, but GitHub Pages does not apply Netlify-style `_headers` rules automatically.
