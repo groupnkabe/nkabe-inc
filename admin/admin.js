@@ -6,7 +6,7 @@ const publishableKey = (config.supabaseAnonKey || '').trim();
 const supabase = createClient(supabaseUrl, publishableKey);
 
 const $ = (selector) => document.querySelector(selector);
-const state = { user: null, profile: null, contacts: [], pilots: [], messages: [], active: null, view: 'overview', recoveryMode: false };
+const state = { user: null, profile: null, contacts: [], pilots: [], messages: [], members: [], active: null, view: 'overview', recoveryMode: false };
 const contactStatuses = ['new', 'reviewing', 'replied', 'closed'];
 const pilotStatuses = ['new', 'reviewing', 'needs_information', 'technically_assessed', 'suitable', 'not_suitable', 'pilot_discussion', 'closed'];
 
@@ -41,6 +41,7 @@ function showWorkspace() {
   $('#user-email').textContent = state.user?.email || 'Staff';
   $('#user-avatar').textContent = (state.user?.email || 'N').slice(0,1).toUpperCase();
   $('#user-role').textContent = state.profile?.role || 'Staff';
+  $('#team-nav').hidden = state.profile?.role !== 'owner';
 }
 function allRecords() {
   return [
@@ -91,16 +92,19 @@ function listRow(item) {
   </button>`;
 }
 function setView(view) {
+  if (view === 'team' && state.profile?.role !== 'owner') return;
   state.view = view;
   document.querySelectorAll('.admin-nav-item').forEach((button) => button.classList.toggle('active',button.dataset.view === view));
   $('#overview-view').hidden = view !== 'overview';
-  $('#inbox-view').hidden = view === 'overview';
-  $('#page-title').textContent = view === 'overview' ? 'Overview' : view === 'contacts' ? 'Contact enquiries' : view === 'pilots' ? 'Pilot applications' : 'All conversations';
+  $('#inbox-view').hidden = view === 'overview' || view === 'team';
+  $('#team-view').hidden = view !== 'team';
+  $('#page-title').textContent = view === 'overview' ? 'Overview' : view === 'team' ? 'Team access' : view === 'contacts' ? 'Contact enquiries' : view === 'pilots' ? 'Pilot applications' : 'All conversations';
   $('#inbox-heading').textContent = view === 'contacts' ? 'Contact enquiries' : view === 'pilots' ? 'Pilot applications' : 'All conversations';
   $('#inbox-overline').textContent = view === 'contacts' ? 'INCOMING MESSAGES' : view === 'pilots' ? 'PILOT PIPELINE' : 'RELATIONSHIP MANAGEMENT';
   $('#status-filter').value = '';
   $('#inbox-search').value = '';
-  if (view !== 'overview') renderInbox();
+  if (view === 'team') loadTeam();
+  else if (view !== 'overview') renderInbox();
 }
 function renderInbox() {
   const term = $('#inbox-search').value.trim().toLowerCase();
@@ -192,6 +196,84 @@ async function saveConversation(event,kind,id,messageType) {
   await loadData();
   toast(isNote ? 'Private note saved.' : 'Reply draft saved to conversation history. It has not been emailed.');
 }
+async function loadTeam() {
+  $('#team-members').innerHTML = '<p class="admin-empty">Loading team members…</p>';
+  const { data, error } = await supabase.functions.invoke('manage-admin-team', { body: { action: 'list' } });
+  if (error || !data?.success) {
+    $('#team-members').innerHTML = '<p class="admin-empty">Team access could not be loaded. Please refresh and try again.</p>';
+    toast(data?.error || error?.message || 'Could not load team access.');
+    return;
+  }
+  state.members = data.members || [];
+  renderTeam();
+}
+
+function renderTeam() {
+  const rows = state.members.map((member) => {
+    const owner = member.role === 'owner';
+    const roleControl = owner
+      ? '<span class="admin-team-role owner">Owner</span>'
+      : '<select class="admin-team-role-select" data-team-role="' + escapeHtml(member.user_id) + '" aria-label="Role for ' + escapeHtml(member.email || member.display_name || 'team member') + '"><option value="admin" ' + (member.role === 'admin' ? 'selected' : '') + '>Admin</option><option value="staff" ' + (member.role === 'staff' ? 'selected' : '') + '>Staff</option></select>';
+    const activeControl = member.is_current_user || owner
+      ? '<span class="admin-team-state active">Active</span>'
+      : '<button class="admin-team-toggle ' + (member.is_active ? 'is-active' : '') + '" type="button" data-team-active="' + escapeHtml(member.user_id) + '">' + (member.is_active ? 'Deactivate' : 'Reactivate') + '</button>';
+    return '<tr><td><strong>' + escapeHtml(member.display_name || 'Team member') + '</strong><small>' + escapeHtml(member.email || 'Email unavailable') + '</small></td><td>' + roleControl + '</td><td><span class="admin-team-state ' + (member.is_active ? 'active' : 'inactive') + '">' + (member.is_active ? 'Active' : 'Inactive') + '</span></td><td>' + escapeHtml(dateLabel(member.last_sign_in_at)) + '</td><td>' + activeControl + '</td></tr>';
+  }).join('');
+  $('#team-members').innerHTML = state.members.length
+    ? '<div class="admin-team-table-wrap"><table class="admin-team-table"><thead><tr><th>TEAM MEMBER</th><th>ROLE</th><th>ACCESS</th><th>LAST SIGN-IN</th><th>ACTION</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+    : '<p class="admin-empty">No team members found.</p>';
+
+  document.querySelectorAll('[data-team-role]').forEach((select) => select.addEventListener('change', async (event) => {
+    const result = await supabase.functions.invoke('manage-admin-team', { body: { action: 'update', user_id: select.dataset.teamRole, role: event.target.value } });
+    if (result.error || !result.data?.success) {
+      toast(result.data?.error || result.error?.message || 'Role could not be updated.');
+      await loadTeam();
+      return;
+    }
+    toast('Team role updated.');
+    await loadTeam();
+  }));
+
+  document.querySelectorAll('[data-team-active]').forEach((button) => button.addEventListener('click', async () => {
+    const member = state.members.find((item) => item.user_id === button.dataset.teamActive);
+    if (!member) return;
+    const nextActive = !member.is_active;
+    const confirmed = window.confirm((nextActive ? 'Reactivate' : 'Deactivate') + ' access for ' + (member.email || member.display_name) + '?');
+    if (!confirmed) return;
+    button.disabled = true;
+    const result = await supabase.functions.invoke('manage-admin-team', { body: { action: 'update', user_id: member.user_id, is_active: nextActive } });
+    if (result.error || !result.data?.success) {
+      toast(result.data?.error || result.error?.message || 'Access could not be updated.');
+      await loadTeam();
+      return;
+    }
+    toast(nextActive ? 'Team access reactivated.' : 'Team access deactivated.');
+    await loadTeam();
+  }));
+}
+
+$('#team-invite-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const email = $('#team-invite-email').value.trim();
+  const displayName = $('#team-invite-name').value.trim();
+  const role = $('#team-invite-role').value;
+  button.disabled = true;
+  $('#team-invite-status').textContent = 'Sending invitation…';
+  const { data, error } = await supabase.functions.invoke('manage-admin-team', {
+    body: { action: 'invite', email, display_name: displayName, role }
+  });
+  button.disabled = false;
+  if (error || !data?.success) {
+    $('#team-invite-status').textContent = data?.error || error?.message || 'Invitation could not be sent.';
+    return;
+  }
+  event.currentTarget.reset();
+  $('#team-invite-status').textContent = 'Invitation sent. The new member will appear in the team list.';
+  toast('Team invitation sent.');
+  await loadTeam();
+});
+
 async function checkAccess(session) {
   if (!session?.user) { state.user = null; state.profile = null; showLogin(); return; }
   state.user = session.user;
