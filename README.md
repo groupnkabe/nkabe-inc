@@ -1,46 +1,31 @@
-# NKABE — corporate website (temporary deployment package)
+# Nkabe — official website
 
-A responsive, static website for NKABE with **nKABE OS** as the flagship product. No build step, server, database, tracking pixel, or analytics dependency is required.
+A responsive, lightweight static website for Nkabe, the public-facing brand of Nkabe Inc. It introduces the company, its approach to building practical technology ventures, and nKABE OS as its flagship venture. The site has no build step or runtime dependencies.
 
-##  Before public launch
+## Deployment
 
-1. **Confirm legal name.** The public-facing brand currently says `NKABE`, not `NKABE, Inc.`. Because the Delaware entity's formation status has not been confirmed in this work session, do not represent the corporation as formed unless that is accurate. After formation, update copy only as approved by counsel.
-2. **Contact form.** The contact section posts to Web3Forms (`https://api.web3forms.com/submit`) using the access key in `site-config.js` (`contactFormAccessKey`). The destination inbox is set inside the Web3Forms account, so no email address is stored in this repository or exposed to visitors. Confirm the key before launch.
-3. **Review all product claims.** Copy distinguishes the current prototype/hardware-validation phase from planned pilots and future platform services. Keep that distinction.
-4. **Domain.** No custom domain is configured because `nkabe.com` acquisition remains unresolved. Use the host's temporary URL until a domain is under company control.
+The site is hosted with GitHub Pages and uses the custom domain `https://nkabe.us` (configured in `CNAME`). The GitHub Actions workflow at `.github/workflows/pages.yml` publishes the static site files when changes are pushed to `main`, or when manually started from the Actions tab. Repository Pages should use **GitHub Actions** as its publishing source.
 
-## Option A — Cloudflare Pages via Git integration (recommended for ongoing updates)
+Changes on a feature branch are not automatically published by the current workflow; merge reviewed changes into `main` to deploy them. The canonical URL and social-sharing URLs use `https://nkabe.us/`.
 
-1. Create a GitHub repository and push this folder to its `main` branch.
-2. In Cloudflare, open **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
-3. Select the repository. Framework preset: **None**. Build command: `exit 0`. Build output directory: `.` (repository root).
-4. Deploy. Cloudflare will issue a `*.pages.dev` address and can redeploy each time `main` is updated.
+## Contact form
 
-Avoid starting with Cloudflare's *Direct Upload* if you want a Git-connected project later: Cloudflare says a Direct Upload project cannot later be switched to Git integration; a separate project would be needed.
-
-## Option B — GitHub Pages
-
-The `.github/workflows/pages.yml` workflow publishes the repository root on pushes to `main`.
-
-1. Push the folder to a repository on GitHub.
-2. In repository **Settings → Pages**, set the source to **GitHub Actions**.
-3. Confirm the Pages workflow runs successfully. GitHub will show the published URL in the workflow/Pages settings.
-
-For a company website, prefer a clean project/repository name, e.g. `nkabe-website`. The resulting project URL will include the repository name. Do not add `CNAME` until using a domain that NKABE controls.
+The contact form posts directly to Web3Forms at `https://api.web3forms.com/submit`. Its public access key is configured in `site-config.js` as `contactFormAccessKey`; the destination inbox is managed by Web3Forms and is not included in this repository. The frontend retains required-field validation and announces success or failure to visitors.
 
 ## Files
 
-- `index.html` — page content and metadata
-- `styles.css` — responsive visual system and layout
-- `script.js` — mobile navigation and Web3Forms contact-form submission
-- `site-config.js` — public settings (Web3Forms access key, display options)
-- `assets/nkabe-os-mark.webp` — supplied nKABE OS mark, optimized for the web
-- `assets/nkabe-inc-mark.webp` — NKABE Inc. logo mark (transparent), shown beside the "NKABE Inc" text wordmark in the header and footer
-- `assets/nkabe-inc-mark.png` — NKABE Inc. logo mark (transparent PNG fallback)
-- `assets/favicon.ico`, `assets/favicon-32.png`, `assets/favicon-16.png`, `assets/apple-touch-icon.png` — favicons generated from the transparent NKABE Inc. logo mark
-- `_headers` — security headers for Cloudflare Pages
+- `index.html` — semantic page content, canonical URL, SEO and social metadata
+- `styles.css` — corporate visual system and responsive layouts
+- `script.js` — accessible mobile navigation and Web3Forms submission
+- `site-config.js` — public website and contact form configuration
+- `assets/nkabe-inc-mark.webp` — official Nkabe corporate logo, used for the brand and social preview
+- `assets/nkabe-os-mark.webp` — official nKABE OS product logo, used only in its venture presentation
+- `assets/nkabe-inc-mark.png` — PNG corporate logo asset
+- `assets/favicon.ico`, `assets/favicon-32.png`, `assets/favicon-16.png`, `assets/apple-touch-icon.png` — site icons
+- `CNAME` — GitHub Pages custom-domain configuration (`nkabe.us`)
 - `.github/workflows/pages.yml` — GitHub Pages deployment workflow
+- `_headers` — repository header configuration file
 
-## Scope
+## Content notes
 
-The site is a corporate-facing one-page introduction. It intentionally does not claim paying customers, revenue, broad production deployment, or finished cloud/remote-management services. Update the roadmap as evidence changes.
+Nkabe is the public-facing technology brand; Nkabe Inc. is the legal entity. nKABE OS is presented as the flagship venture and described as in development. Its listed capability areas are framed as development work, not as claims of completed operational functionality. The site does not claim customers, revenue, partnerships, deployments or market leadership.
