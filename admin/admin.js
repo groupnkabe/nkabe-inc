@@ -21,11 +21,13 @@ const submitted = (record) => record.submitted_at;
 const statusOptions = (kind) => kind === 'contact' ? contactStatuses : pilotStatuses;
 
 function showLogin(message = '') {
+  document.body.classList.add('admin-logged-out');
   $('#login-view').hidden = false;
   $('#workspace-view').hidden = true;
   $('#login-status').textContent = message;
 }
 function showWorkspace() {
+  document.body.classList.remove('admin-logged-out');
   $('#login-view').hidden = true;
   $('#workspace-view').hidden = false;
   $('#user-email').textContent = state.user?.email || 'Staff';
