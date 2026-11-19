@@ -40,13 +40,25 @@
 
     <section id="login-view" class="admin-login">
       <div class="admin-login-card">
-        <h2>Admin sign in</h2>
-        <form id="login-form">
-          <label>Email address<input id="login-email" type="email" autocomplete="username" required></label>
-          <label>Password<input id="login-password" type="password" autocomplete="current-password" required></label>
-          <button class="admin-primary" type="submit">Sign in <span>↗</span></button>
-          <p id="login-status" class="admin-form-status" role="status"></p>
-        </form>
+        <div id="login-panel">
+          <h2>Admin sign in</h2>
+          <form id="login-form">
+            <label>Email address<input id="login-email" type="email" autocomplete="username" required></label>
+            <label>Password<input id="login-password" type="password" autocomplete="current-password" required></label>
+            <button class="admin-primary" type="submit">Sign in <span>↗</span></button>
+            <button class="admin-text-button" id="request-password-reset" type="button">Set or reset your password</button>
+            <p id="login-status" class="admin-form-status" role="status"></p>
+          </form>
+        </div>
+        <div id="password-reset-panel" hidden>
+          <h2>Set your password</h2>
+          <form id="password-reset-form">
+            <label>New password<input id="new-password" type="password" autocomplete="new-password" minlength="8" required></label>
+            <label>Confirm new password<input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
+            <button class="admin-primary" type="submit">Save password <span>↗</span></button>
+            <p id="password-reset-status" class="admin-form-status" role="status"></p>
+          </form>
+        </div>
       </div>
     </section>
 
