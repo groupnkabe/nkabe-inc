@@ -66,10 +66,19 @@ Deno.serve(async (request) => {
   if (text(payload.website, 200)) return response({ success: true }, 200, origin);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!supabaseUrl || !serviceRoleKey) return response({ success: false, error: "Submission service is not configured." }, 503, origin);
+  // Supabase injects named secret keys for current projects. Keep the legacy
+  // service-role variable as a fallback for projects still using legacy keys.
+  let secretKey = "";
+  try {
+    const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    secretKey = typeof secretKeys.default === "string" ? secretKeys.default : "";
+  } catch {
+    secretKey = "";
+  }
+  secretKey ||= Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !secretKey) return response({ success: false, error: "Submission service is not configured." }, 503, origin);
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  const supabase = createClient(supabaseUrl, secretKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 
