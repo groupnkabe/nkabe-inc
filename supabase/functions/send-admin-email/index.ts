@@ -117,7 +117,7 @@ Deno.serve(async (request: Request) => {
 
   const { data: claimed, error: claimError } = await db.from("admin_conversation_messages")
     .update({ delivery_status: "sending", sent_at: null })
-    .eq("id", messageId).in("delivery_status", ["not_configured", "failed"])
+    .eq("id", messageId).in("delivery_status", ["draft", "not_configured", "failed"])
     .select("id").maybeSingle();
 
   if (claimError || !claimed) return reply({ error: "This draft is already being processed or is no longer sendable." }, 409, origin);
