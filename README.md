@@ -21,6 +21,8 @@ The contact form posts directly to Web3Forms at `https://api.web3forms.com/submi
 - `assets/nkabe-inc-mark.webp` — official Nkabe corporate logo, used for the brand and social preview
 - `assets/nkabe-os-mark.webp` — official nKABE OS product logo, used only in its venture presentation
 - `assets/nkabe-inc-mark.png` — PNG corporate logo asset
+- `assets/favicon.svg` — scalable favicon wrapper using the official corporate logo
+- `assets/nkabe-inc-mark.png` — official square PNG logo; use this as the email profile/avatar image
 - `assets/favicon.ico`, `assets/favicon-32.png`, `assets/favicon-16.png`, `assets/apple-touch-icon.png` — site icons
 - `CNAME` — GitHub Pages custom-domain configuration (`nkabe.us`)
 - `.github/workflows/pages.yml` — GitHub Pages deployment workflow
