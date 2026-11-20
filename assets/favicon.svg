@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#fff"/>
-  <path d="M8 7 32 25v24L20 40v17H8Z" fill="#061A3A"/>
-  <path d="M44 34 57 44v13H44Z" fill="#061A3A"/>
-  <path d="M11 49 30 33l17 14V27l8-8" fill="none" stroke="#0DC5E6" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="11" cy="49" r="5.5" fill="#fff" stroke="#0DC5E6" stroke-width="4"/>
-  <circle cx="55" cy="19" r="5.5" fill="#fff" stroke="#0DC5E6" stroke-width="4"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="8" fill="#fff"/><image href="nkabe-inc-mark.webp" x="0" y="0" width="64" height="64" preserveAspectRatio="xMidYMid meet"/></svg>
