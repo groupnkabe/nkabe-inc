@@ -63,7 +63,7 @@ export default {
       });
     }
 
-    const agentResponse = await routeAgentRequest(request, env, { cors: false });
+    const agentResponse = await routeAgentRequest(request, env);
     if (agentResponse) return agentResponse;
 
     return json({ error: "Not found" }, 404);
