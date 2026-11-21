@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local development. Never commit real values.
+WORKFORCE_API_TOKEN=replace-with-a-long-random-secret
+SUPABASE_URL=https://uqmqhlpdrqvkunfjrgpk.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=replace-with-the-server-side-service-role-key
+WORKERS_AI_MODEL=@cf/zai-org/glm-4.7-flash

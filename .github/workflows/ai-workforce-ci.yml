@@ -1,0 +1,38 @@
+name: AI Workforce CI
+
+on:
+  push:
+    branches:
+      - feat/cloudflare-ai-workforce
+    paths:
+      - "ai-workforce/**"
+      - ".github/workflows/ai-workforce-ci.yml"
+  pull_request:
+    paths:
+      - "ai-workforce/**"
+      - ".github/workflows/ai-workforce-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-workforce
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ai-workforce/package.json
+      - name: Install dependencies
+        run: npm install
+      - name: Type-check
+        run: npm run typecheck
+      - name: Validate Worker bundle
+        run: npx wrangler deploy --dry-run
