@@ -60,6 +60,7 @@ Deno.serve(async (request: Request) => {
   const fromName=settings?.from_name||"Nkabe Inc.";
   const fromEmail=settings?.from_email||Deno.env.get("NKABE_EMAIL_FROM")||"no-reply@nkabe.us";
   const replyTo=settings?.reply_to||Deno.env.get("NKABE_EMAIL_REPLY_TO")||"";\n  if(!/^[^\\s@]+@nkabe\\.us$/i.test(fromEmail)) return reply({error:"The configured sender must use an authenticated @nkabe.us address."},503,origin);
+  if(!/^[^\s@]+@nkabe\.us$/i.test(fromEmail)) return reply({error:"The configured sender must use an authenticated @nkabe.us address."},503,origin);
   let to:string[]=[],cc:string[]=[],bcc:string[]=[],subject="",body="",recordId="",table="";
   if(action==="send"){
     recordId=typeof payload.message_id==="string"?payload.message_id:""; table="admin_conversation_messages";
