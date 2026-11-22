@@ -49,7 +49,7 @@ Deno.serve(async(req:Request)=>{
   if(targetError||!target)return reply({error:"Team member not found."},404,origin);if(target.role==="owner")return reply({error:"Owner access cannot be changed from team management."},403,origin);
   const changes:Record<string,unknown>={};if(role)changes.role=role;if(hasActive)changes.is_active=p.is_active;if(companyEmail!==undefined){changes.company_email=companyEmail||null;if(companyEmail&&!mailboxStatus)changes.mailbox_status="pending";}if(mailboxStatus)changes.mailbox_status=mailboxStatus;
   const {error}=await admin.from("admin_users").update(changes).eq("user_id",userId);if(error)return reply({error:"Team access could not be updated."},500,origin);
-  if(hasActive&&p.is_active===false){await admin.auth.admin.signOut(userId,"global");}
+  // Every protected query and Edge Function checks is_active, so deactivation takes effect immediately even if an existing Auth token remains cached.
   return reply({success:true,message:"Team access updated."},200,origin);
  }
  return reply({error:"Unknown action."},400,origin);
