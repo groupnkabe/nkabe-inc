@@ -44,7 +44,7 @@ Deno.serve(async (request: Request) => {
   const {data:auth,error:authError}=await authClient.auth.getUser(token);
   if(authError||!auth.user) return reply({error:"Your session is invalid. Sign in again."},401,origin);
   const db=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
-  const {data:actor,error:actorError}=await db.from("admin_users").select("user_id,role,is_active").eq("user_id",auth.user.id).maybeSingle();
+  const {data:actor,error:actorError}=await db.from("admin_users").select("user_id,role,is_active,display_name,company_email,mailbox_status").eq("user_id",auth.user.id).maybeSingle();
   if(actorError||!actor||!actor.is_active||!["owner","admin"].includes(actor.role)) return reply({error:"Only active owners and admins can send email."},403,origin);
   let payload:Record<string,unknown>;
   try { const raw=await request.text(); if(raw.length>20000) return reply({error:"Request is too large."},413,origin); payload=JSON.parse(raw); }
@@ -57,9 +57,10 @@ Deno.serve(async (request: Request) => {
 
   const {data:settings}=await db.from("admin_email_settings").select("company_name,from_name,from_email,reply_to,logo_url,brand_color,footer_text").eq("id",true).maybeSingle();
   const company=settings?.company_name||"Nkabe Inc.";
-  const fromName=settings?.from_name||"Nkabe Inc.";
-  const fromEmail=settings?.from_email||Deno.env.get("NKABE_EMAIL_FROM")||"no-reply@nkabe.us";
-  const replyTo=settings?.reply_to||Deno.env.get("NKABE_EMAIL_REPLY_TO")||"";
+  const personalSender=actor.mailbox_status==="provisioned" && /^[^\s@]+@nkabe\.us$/i.test(actor.company_email||"");
+  const fromName=personalSender?(actor.display_name||settings?.from_name||"Nkabe Inc."):(settings?.from_name||"Nkabe Inc.");
+  const fromEmail=personalSender?actor.company_email:(settings?.from_email||Deno.env.get("NKABE_EMAIL_FROM")||"no-reply@nkabe.us");
+  const replyTo=personalSender?actor.company_email:(settings?.reply_to||Deno.env.get("NKABE_EMAIL_REPLY_TO")||"");
   if(!/^[^\s@]+@nkabe\.us$/i.test(fromEmail)) return reply({error:"The configured sender must use an authenticated @nkabe.us address."},503,origin);
   const brandColor=/^#[0-9a-f]{6}$/i.test(settings?.brand_color||"")?settings.brand_color:"#061A3A";
   let to:string[]=[],cc:string[]=[],bcc:string[]=[],subject="",body="",recordId="",table="";
