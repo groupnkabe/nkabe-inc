@@ -16,7 +16,7 @@ function ensureShell(){
    <div class="enh-heading"><div><p class="admin-overline">NKABE INC. / COMMUNICATIONS</p><h2 id="enh-title">Company email</h2><p id="enh-subtitle">Branded company communications and delivery history.</p></div></div>
    <div id="enh-content"></div>
   </section>`);
- nav.querySelectorAll('[data-enh-view]').forEach(b=>b.addEventListener('click',()=>openEnhView(b.dataset.enhView)));
+ nav.querySelectorAll('[data-enh-view]').forEach(b=>b.addEventListener('click',()=>openEnhView(b.dataset.enhView)));\n nav.addEventListener('click',e=>{const b=e.target.closest('.admin-nav-item');if(b&&!b.dataset.enhView)$('#admin-enh-view').hidden=true;});
 }
 function setNavActive(view){
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
@@ -62,7 +62,7 @@ async function renderEmail(){
   const {data,error}=await sb.from('admin_outbound_emails').insert({to_emails:to,cc_emails:cc,bcc_emails:bcc,subject,body,created_by:currentUser.id,delivery_status:'draft'}).select('id').single();
   if(error)throw error;return data.id;
  };
- $('#enh-save').addEventListener('click',async()=>{try{const id=await createDraft();$('#enh-compose-status').textContent='Draft saved.';notify('Email draft saved.');await load();}catch(e){$('#enh-compose-status').textContent=e.message||'Could not save draft.';}});
+ if(profile?.role==='staff'){const sendButton=$('#enh-compose').querySelector('button[type=submit]');sendButton.disabled=true;sendButton.textContent='Admin or Owner required to send';}\n $('#enh-save').addEventListener('click',async()=>{try{const id=await createDraft();$('#enh-compose-status').textContent='Draft saved.';notify('Email draft saved.');await load();}catch(e){$('#enh-compose-status').textContent=e.message||'Could not save draft.';}});
  $('#enh-compose').addEventListener('submit',async e=>{
   e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;$('#enh-compose-status').textContent='Saving and sending…';
   try{const id=await createDraft();const {data,error}=await sb.functions.invoke('send-admin-email',{body:{action:'send_new',email_id:id}});
