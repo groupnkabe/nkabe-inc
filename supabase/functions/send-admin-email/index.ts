@@ -61,6 +61,7 @@ Deno.serve(async (request: Request) => {
   const fromEmail=settings?.from_email||Deno.env.get("NKABE_EMAIL_FROM")||"no-reply@nkabe.us";
   const replyTo=settings?.reply_to||Deno.env.get("NKABE_EMAIL_REPLY_TO")||"";
   if(!/^[^\s@]+@nkabe\.us$/i.test(fromEmail)) return reply({error:"The configured sender must use an authenticated @nkabe.us address."},503,origin);
+  const brandColor=/^#[0-9a-f]{6}$/i.test(settings?.brand_color||"")?settings.brand_color:"#061A3A";
   let to:string[]=[],cc:string[]=[],bcc:string[]=[],subject="",body="",recordId="",table="";
   if(action==="send"){
     recordId=typeof payload.message_id==="string"?payload.message_id:""; table="admin_conversation_messages";
@@ -84,7 +85,7 @@ Deno.serve(async (request: Request) => {
   if(!to.length||!subject.trim()||!body.trim()) return reply({error:"A valid recipient, subject and message are required."},422,origin);
   const {data:claimed,error:claimError}=await db.from(table).update({delivery_status:"sending"}).eq("id",recordId).in("delivery_status",action==="send"?["draft","not_configured","failed"]:["draft","failed"]).select("id").maybeSingle();
   if(claimError||!claimed) return reply({error:"This email is already being processed or is no longer sendable."},409,origin);
-  const emailPayload:Record<string,unknown>={from:fromName+" <"+fromEmail+">",to,subject,text:body,html:brandedHtml(company,settings?.logo_url||"",settings?.brand_color||"#061A3A",settings?.footer_text||"Nkabe Inc. · nkabe.us",body),headers:{"X-Nkabe-Email-Record":recordId}};
+  const emailPayload:Record<string,unknown>={from:fromName+" <"+fromEmail+">",to,subject,text:body,html:brandedHtml(company,settings?.logo_url||"",brandColor,settings?.footer_text||"Nkabe Inc. · nkabe.us",body),headers:{"X-Nkabe-Email-Record":recordId}};
   if(cc.length) emailPayload.cc=cc;
   if(bcc.length) emailPayload.bcc=bcc;
   if(replyTo) emailPayload.reply_to=[replyTo];
