@@ -16,7 +16,8 @@ function ensureShell(){
    <div class="enh-heading"><div><p class="admin-overline">NKABE INC. / COMMUNICATIONS</p><h2 id="enh-title">Company email</h2><p id="enh-subtitle">Branded company communications and delivery history.</p></div></div>
    <div id="enh-content"></div>
   </section>`);
- nav.querySelectorAll('[data-enh-view]').forEach(b=>b.addEventListener('click',()=>openEnhView(b.dataset.enhView)));\n nav.addEventListener('click',e=>{const b=e.target.closest('.admin-nav-item');if(b&&!b.dataset.enhView)$('#admin-enh-view').hidden=true;});
+ nav.querySelectorAll('[data-enh-view]').forEach(b=>b.addEventListener('click',()=>openEnhView(b.dataset.enhView)));
+ nav.addEventListener('click',e=>{const b=e.target.closest('.admin-nav-item');if(b&&!b.dataset.enhView)$('#admin-enh-view').hidden=true;});
 }
 function setNavActive(view){
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
@@ -62,7 +63,8 @@ async function renderEmail(){
   const {data,error}=await sb.from('admin_outbound_emails').insert({to_emails:to,cc_emails:cc,bcc_emails:bcc,subject,body,created_by:currentUser.id,delivery_status:'draft'}).select('id').single();
   if(error)throw error;return data.id;
  };
- if(profile?.role==='staff'){const sendButton=$('#enh-compose').querySelector('button[type=submit]');sendButton.disabled=true;sendButton.textContent='Admin or Owner required to send';}\n $('#enh-save').addEventListener('click',async()=>{try{const id=await createDraft();$('#enh-compose-status').textContent='Draft saved.';notify('Email draft saved.');await load();}catch(e){$('#enh-compose-status').textContent=e.message||'Could not save draft.';}});
+ if(profile?.role==='staff'){const sendButton=$('#enh-compose').querySelector('button[type=submit]');sendButton.disabled=true;sendButton.textContent='Admin or Owner required to send';}
+ $('#enh-save').addEventListener('click',async()=>{try{const id=await createDraft();$('#enh-compose-status').textContent='Draft saved.';notify('Email draft saved.');await load();}catch(e){$('#enh-compose-status').textContent=e.message||'Could not save draft.';}});
  $('#enh-compose').addEventListener('submit',async e=>{
   e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;$('#enh-compose-status').textContent='Saving and sending…';
   try{const id=await createDraft();const {data,error}=await sb.functions.invoke('send-admin-email',{body:{action:'send_new',email_id:id}});
@@ -124,7 +126,8 @@ async function renderSettings(){
  <form id="enh-brand-settings" class="enh-form enh-brand-form">
   <div class="enh-two"><label>Company name <input id="brand-company" value="${esc(s.company_name||'Nkabe Inc.')}" required></label><label>Sender display name <input id="brand-from-name" value="${esc(s.from_name||'Nkabe Inc.')}" required></label></div>
   <div class="enh-two"><label>From email address <input id="brand-from-email" type="email" value="${esc(s.from_email||'no-reply@nkabe.us')}" required></label><label>Reply-to address <input id="brand-reply-to" type="email" value="${esc(s.reply_to||'')}" placeholder="Optional"></label></div>
-  <label>Upload company logo (PNG, JPG or WebP · max 2 MB) <input id="brand-logo-file" type="file" accept="image/png,image/jpeg,image/webp"></label>\n  <label>Logo image URL <input id="brand-logo" type="url" value="${esc(s.logo_url||'https://nkabe.us/assets/nkabe-inc-mark.webp')}" placeholder="https://nkabe.us/assets/logo.png"></label>
+  <label>Upload company logo (PNG, JPG or WebP · max 2 MB) <input id="brand-logo-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
+  <label>Logo image URL <input id="brand-logo" type="url" value="${esc(s.logo_url||'https://nkabe.us/assets/nkabe-inc-mark.webp')}" placeholder="https://nkabe.us/assets/logo.png"></label>
   <div class="enh-logo-preview"><img id="brand-preview" src="${esc(s.logo_url||'https://nkabe.us/assets/nkabe-inc-mark.webp')}" alt="Email logo preview" onerror="this.style.display='none'"><span>Preview used in outgoing email templates</span></div>
   <div class="enh-two"><label>Brand colour <input id="brand-color" type="color" value="${esc(s.brand_color||'#061A3A')}"></label><label>Footer text <input id="brand-footer" value="${esc(s.footer_text||'Nkabe Inc. · nkabe.us')}"></label></div>
   <button class="admin-primary" type="submit">Save email branding ↗</button><p id="brand-status" class="admin-form-status" role="status"></p>
