@@ -124,13 +124,23 @@ async function renderSettings(){
  <form id="enh-brand-settings" class="enh-form enh-brand-form">
   <div class="enh-two"><label>Company name <input id="brand-company" value="${esc(s.company_name||'Nkabe Inc.')}" required></label><label>Sender display name <input id="brand-from-name" value="${esc(s.from_name||'Nkabe Inc.')}" required></label></div>
   <div class="enh-two"><label>From email address <input id="brand-from-email" type="email" value="${esc(s.from_email||'no-reply@nkabe.us')}" required></label><label>Reply-to address <input id="brand-reply-to" type="email" value="${esc(s.reply_to||'')}" placeholder="Optional"></label></div>
-  <label>Logo image URL <input id="brand-logo" type="url" value="${esc(s.logo_url||'https://nkabe.us/assets/nkabe-inc-mark.webp')}" placeholder="https://nkabe.us/assets/logo.png"></label>
+  <label>Upload company logo (PNG, JPG or WebP · max 2 MB) <input id="brand-logo-file" type="file" accept="image/png,image/jpeg,image/webp"></label>\n  <label>Logo image URL <input id="brand-logo" type="url" value="${esc(s.logo_url||'https://nkabe.us/assets/nkabe-inc-mark.webp')}" placeholder="https://nkabe.us/assets/logo.png"></label>
   <div class="enh-logo-preview"><img id="brand-preview" src="${esc(s.logo_url||'https://nkabe.us/assets/nkabe-inc-mark.webp')}" alt="Email logo preview" onerror="this.style.display='none'"><span>Preview used in outgoing email templates</span></div>
   <div class="enh-two"><label>Brand colour <input id="brand-color" type="color" value="${esc(s.brand_color||'#061A3A')}"></label><label>Footer text <input id="brand-footer" value="${esc(s.footer_text||'Nkabe Inc. · nkabe.us')}"></label></div>
   <button class="admin-primary" type="submit">Save email branding ↗</button><p id="brand-status" class="admin-form-status" role="status"></p>
   <p class="admin-composer-hint">This controls the HTML logo, company name, colours and footer inside outgoing emails. Inbox sender avatars are controlled separately by email providers and domain branding standards.</p>
  </form></section>`;
  $('#brand-logo').addEventListener('input',()=>{$('#brand-preview').src=$('#brand-logo').value;$('#brand-preview').style.display='';});
+ $('#brand-logo-file').addEventListener('change',async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>2097152){$('#brand-status').textContent='Choose a PNG, JPG or WebP image up to 2 MB.';return;}
+  $('#brand-status').textContent='Uploading logo…';
+  const ext=file.type==='image/png'?'png':file.type==='image/jpeg'?'jpg':'webp';
+  const {error}=await sb.storage.from('nkabe-email-branding').upload('company-logo.'+ext,file,{upsert:true,contentType:file.type,cacheControl:'3600'});
+  if(error){$('#brand-status').textContent='Logo upload failed: '+error.message;return;}
+  const {data}=sb.storage.from('nkabe-email-branding').getPublicUrl('company-logo.'+ext);
+  const url=data.publicUrl+'?v='+Date.now();$('#brand-logo').value=url;$('#brand-preview').src=url;$('#brand-preview').style.display='';$('#brand-status').textContent='Logo uploaded. Save branding to apply it to outgoing email.';
+ });
  $('#enh-brand-settings').addEventListener('submit',async e=>{
   e.preventDefault();const payload={company_name:$('#brand-company').value.trim(),from_name:$('#brand-from-name').value.trim(),from_email:$('#brand-from-email').value.trim(),reply_to:$('#brand-reply-to').value.trim()||null,logo_url:$('#brand-logo').value.trim()||null,brand_color:$('#brand-color').value,footer_text:$('#brand-footer').value.trim(),updated_by:currentUser.id,updated_at:new Date().toISOString()};
   const {error}=await sb.from('admin_email_settings').update(payload).eq('id',true);$('#brand-status').textContent=error?error.message:'Branding settings saved.';
@@ -163,12 +173,19 @@ function interceptReply(){
  });
  observer.observe(panel,{childList:true,subtree:true});
 }
-async function boot(){
- const {data:{session}}=await sb.auth.getSession();if(!session?.user)return;
+let initializedUserId=null;
+async function initForSession(session){
+ if(!session?.user){currentUser=null;profile=null;initializedUserId=null;return;}
+ if(initializedUserId===session.user.id)return;
  currentUser=session.user;
  const {data}=await sb.from('admin_users').select('role,is_active,display_name').eq('user_id',currentUser.id).maybeSingle();
- if(!data?.is_active)return;profile=data;ensureShell();interceptReply();
+ if(!data?.is_active)return;
+ profile=data;initializedUserId=currentUser.id;ensureShell();interceptReply();
  if(profile.role!=='owner'){$('#team-nav')?.remove();$('#settings-nav')?.remove();}
- sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){currentUser=null;profile=null;}});
 }
-await boot();
+sb.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'){currentUser=null;profile=null;initializedUserId=null;}
+ if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED')Promise.resolve().then(()=>initForSession(session));
+});
+const {data:{session}}=await sb.auth.getSession();
+await initForSession(session);
