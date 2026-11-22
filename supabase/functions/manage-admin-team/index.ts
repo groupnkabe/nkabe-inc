@@ -31,7 +31,7 @@ Deno.serve(async(req:Request)=>{
   if(!displayName)return reply({error:"Enter the team member's name."},400,origin);
   if(!["admin","staff"].includes(role))return reply({error:"Invitations can only be for admin or staff roles."},400,origin);
   if(companyEmail&&!/^[a-z0-9._%+-]+@nkabe\.us$/.test(companyEmail))return reply({error:"Company email must use an @nkabe.us address."},400,origin);
-  const {data:invitation,error:inviteError}=await admin.auth.admin.inviteUserByEmail(email,{data:{display_name:displayName},redirectTo:"https://desk.nkabe.us/"});
+  const {data:invitation,error:inviteError}=await admin.auth.admin.inviteUserByEmail(email,{data:{display_name:displayName},redirectTo:"https://nkabe-admin.nkabeinc.workers.dev/"});
   if(inviteError||!invitation.user)return reply({error:inviteError?.message?.includes("already")?"This email already has an Auth account. Manage its existing team access instead.":"The invitation could not be sent. Check Supabase Auth email configuration."},400,origin);
   const {error:insertError}=await admin.from("admin_users").insert({user_id:invitation.user.id,display_name:displayName,role,is_active:true,company_email:companyEmail||null,mailbox_status:companyEmail?"pending":"not_configured"});
   if(insertError){await admin.auth.admin.deleteUser(invitation.user.id);return reply({error:"The invitation could not be completed. No team access was created."},500,origin);}
