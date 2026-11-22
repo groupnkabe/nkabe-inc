@@ -9,7 +9,7 @@ The admin portal is a separate static application. It is **not** part of the pub
 - Staff hostname: `https://desk.nkabe.us`.
 - Edge access gate: Cloudflare Access, restricted to explicitly approved staff email addresses.
 - Application sign-in and data authorization: Supabase Auth plus the `admin_users` allowlist and RLS.
-- Reply composer: saves an unsent draft in conversation history. No email is sent in this phase.
+- Reply composer: saves and sends branded replies through the `send-admin-email` Edge Function and Resend.\n- Company email workspace: direct outbound messages, sent history, sender branding, and owner-managed staff access.\n- Team mailbox assignments are tracked in the workspace; actual mailboxes are provisioned by the selected email-hosting provider.
 
 The hostname is not the security boundary. Cloudflare Access and Supabase authorization are.
 
