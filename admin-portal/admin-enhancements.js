@@ -3,7 +3,7 @@ const cfg=window.NKABE_SITE_CONFIG||{};
 const sb=createClient((cfg.supabaseUrl||'').trim(),(cfg.supabaseAnonKey||'').trim());
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let currentUser=null,profile=null,activeEnhView='email';
+let currentUser=null,profile=null,activeEnhView='email',commRefreshTimer=null;
 const notify=m=>{const el=$('#global-status');if(el){el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}};
 function ensureShell(){
  const nav=$('.admin-nav'),workspace=$('#workspace-view');if(!nav||!workspace||$('#admin-enh-view'))return;
@@ -24,6 +24,7 @@ function setNavActive(view){
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
 }
 function openEnhView(view){
+ if(view!=='communications'&&commRefreshTimer){clearInterval(commRefreshTimer);commRefreshTimer=null;}
  activeEnhView=view;ensureShell();
  $('#overview-view').hidden=true;$('#inbox-view').hidden=true;$('#admin-enh-view').hidden=false;
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
@@ -143,6 +144,8 @@ async function renderCommunications(){
  });
  await loadLists();
  const general=channels.find(x=>x.slug==='general');if(general)await select({kind:'channel',id:general.id});
+ if(commRefreshTimer)clearInterval(commRefreshTimer);
+ commRefreshTimer=window.setInterval(()=>{if(selection)loadMessages();},12000);
 }
 
 async function renderTeam(){
@@ -257,7 +260,7 @@ async function initForSession(session){
  if(profile.role!=='owner'){$('#team-nav')?.remove();$('#settings-nav')?.remove();}
 }
 sb.auth.onAuthStateChange((event,session)=>{
- if(event==='SIGNED_OUT'){currentUser=null;profile=null;initializedUserId=null;}
+ if(event==='SIGNED_OUT'){currentUser=null;profile=null;initializedUserId=null;if(commRefreshTimer){clearInterval(commRefreshTimer);commRefreshTimer=null;}}
  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED')Promise.resolve().then(()=>initForSession(session));
 });
 const {data:{session}}=await sb.auth.getSession();
