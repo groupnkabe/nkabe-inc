@@ -108,7 +108,7 @@ Deno.serve(async (request: Request) => {
       .eq("id", threadId).eq("email_address", inboxEmail).maybeSingle();
     if (threadError || !thread) return reply({ error: "Email conversation not found." }, 404, origin);
     const { data: emails, error } = await db.from("admin_inbound_email_messages")
-      .select("id,provider_email_id,direction,from_address,to_addresses,cc_addresses,subject,text_body,html_body,message_id,in_reply_to,references,created_at")
+      .select("id,provider_email_id,direction,from_address,to_addresses,cc_addresses,subject,text_body,html_body,message_id,in_reply_to,reference_ids,created_at")
       .eq("thread_id", threadId).order("created_at", { ascending: true }).limit(200);
     if (error) return reply({ error: "Could not load the email conversation." }, 500, origin);
     return reply({ success: true, thread: { ...thread, emails: emails ?? [] } }, 200, origin);
