@@ -131,7 +131,7 @@ Deno.serve(async (request: Request) => {
     const replyToCandidate = replyToValue.match(/<([^>]+)>/)?.[1] ?? replyToValue;
     const fromCandidate = latest.from_address.match(/<([^>]+)>/)?.[1] ?? latest.from_address;
     const recipient = replyToCandidate || fromCandidate;
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(recipient)) return reply({ error: "The reply address is invalid; reply cannot be sent." }, 400, origin);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return reply({ error: "The reply address is invalid; reply cannot be sent." }, 400, origin);
     const refs = Array.isArray(latest.reference_ids) ? latest.reference_ids.filter((x: unknown) => typeof x === "string") : [];
     if (latest.message_id && !refs.includes(latest.message_id)) refs.push(latest.message_id);
     const outboundMessageId = `<nkabe-${crypto.randomUUID()}@nkabe.us>`;
