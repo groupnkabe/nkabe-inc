@@ -8,15 +8,15 @@
 - Internal direct messages and company/project channels are stored in Supabase and accessed only through the authenticated `admin-communications` Edge Function.
 - No DNS or MX records are changed by this feature.
 
-## Resend inbound mail and Inboxes
+## Inbound email routing
 
-Resend Inboxes supports threaded inboxes, assignments, drafts, folders, labels, collaboration notes and agent workflows. It requires an inbound address/domain configuration. The existing `nkabe.us` Zoho MX records must remain untouched during this first phase.
+Resend's standard inbound receiving API is used for the shared company mailbox. Resend Inboxes and the `inbox.email.received` event are not used.
 
-Before enabling inbound mail in the dashboard, choose an inbound routing approach:
-1. Keep Zoho as the primary mail host and configure per-mailbox forwarding to a Resend-managed inbound address on a separate subdomain or Resend-provided address; or
-2. Move only a dedicated mail subdomain to Resend and create new addresses there.
-
-Do not point the root `nkabe.us` MX records at Resend unless the company explicitly decides to migrate away from Zoho.
+- Keep Zoho as the primary mail host.
+- Use the Resend-provided `.resend.app` receiving address and configure Zoho to forward a copy of `hello@nkabe.us` there.
+- Do not point the root `nkabe.us` MX records at Resend.
+- The `email.received` webhook retrieves the message body through the Receiving API and stores it in Nkabe-owned Supabase tables.
+- Configure the webhook only after the receiving address is known and the signed webhook secret can be stored server-side.
 
 ## Internal communications
 
@@ -32,7 +32,7 @@ Do not point the root `nkabe.us` MX records at Resend unless the company explici
 2. Deploy the `admin-communications` Edge Function with JWT verification enabled.
 3. Merge the feature branch to `feature/admin-workspace` to trigger the configured Cloudflare Pages deployment.
 4. Verify with two active staff accounts: create a project channel, post a channel message, exchange direct messages, and send a branded email.
-5. Configure Resend inbound forwarding only after confirming the chosen routing plan. Set the Resend webhook secret as a Supabase Edge Function secret before registering the webhook.
+5. Configure the Resend-provided receiving address and Zoho forwarding only after the database migration and Edge Functions are deployed. The dashboard setup registers the signed webhook and stores its secret server-side.
 
 ## Limitations in this phase
 
