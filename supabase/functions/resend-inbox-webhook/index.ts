@@ -91,7 +91,7 @@ Deno.serve(async (request: Request) => {
     direction: "inbound", from_address: fromAddress, to_addresses: toAddresses,
     cc_addresses: ccAddresses, subject, text_body: plainText, html_body: htmlBody,
     message_id: messageId || null, in_reply_to: inReplyTo || null,
-    references, headers, created_at: email.created_at ?? new Date().toISOString()
+    reference_ids: references, headers, created_at: email.created_at ?? new Date().toISOString()
   });
   if (inserted.error) {
     if (inserted.error.code === "23505") return json({ success: true, duplicate: true });
