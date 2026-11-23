@@ -3,12 +3,13 @@ const cfg=window.NKABE_SITE_CONFIG||{};
 const sb=createClient((cfg.supabaseUrl||'').trim(),(cfg.supabaseAnonKey||'').trim());
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let currentUser=null,profile=null,activeEnhView='email',commRefreshTimer=null;
+let currentUser=null,profile=null,activeEnhView='email',commRefreshTimer=null,companyInboxTimer=null;
 const notify=m=>{const el=$('#global-status');if(el){el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}};
 function ensureShell(){
  const nav=$('.admin-nav'),workspace=$('#workspace-view');if(!nav||!workspace||$('#admin-enh-view'))return;
  nav.insertAdjacentHTML('beforeend',`
   <button class="admin-nav-item" data-enh-view="communications"><span>◉</span> Communications</button>
+  <button class="admin-nav-item" data-enh-view="company-inbox"><span>✉</span> Company inbox</button>
   <button class="admin-nav-item" data-enh-view="email"><span>✉</span> Email</button>
   <button class="admin-nav-item" data-enh-view="team" id="team-nav"><span>♙</span> Team</button>
   <button class="admin-nav-item" data-enh-view="settings" id="settings-nav"><span>⚙</span> Settings</button>`);
@@ -25,15 +26,16 @@ function setNavActive(view){
 }
 function openEnhView(view){
  if(view!=='communications'&&commRefreshTimer){clearInterval(commRefreshTimer);commRefreshTimer=null;}
+ if(view!=='company-inbox'&&companyInboxTimer){clearInterval(companyInboxTimer);companyInboxTimer=null;}
  activeEnhView=view;ensureShell();
  $('#overview-view').hidden=true;$('#inbox-view').hidden=true;$('#admin-enh-view').hidden=false;
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
- $('#page-title').textContent=view==='communications'?'Communications':view==='email'?'Company email':view==='team'?'Team management':'Email branding';
- $('#enh-title').textContent=view==='communications'?'Team communications':view==='email'?'Company email':view==='team'?'Team management':'Email branding';
- $('#enh-subtitle').textContent=view==='communications'?'Direct messages, company updates and project collaboration.':view==='email'?'Compose branded messages and review outgoing mail.':view==='team'?'Invite colleagues and manage their Nkabe workspace access.':'Manage the sender identity and visual identity used in company emails.';
+ $('#page-title').textContent=view==='communications'?'Communications':view==='company-inbox'?'Company inbox':view==='email'?'Company email':view==='team'?'Team management':'Email branding';
+ $('#enh-title').textContent=view==='communications'?'Team communications':view==='company-inbox'?'Company inbox':view==='email'?'Company email':view==='team'?'Team management':'Email branding';
+ $('#enh-subtitle').textContent=view==='communications'?'Direct messages, company updates and project collaboration.':view==='company-inbox'?'Read and respond to external email conversations as Nkabe Inc.':view==='email'?'Compose branded messages and review outgoing mail.':view==='team'?'Invite colleagues and manage their Nkabe workspace access.':'Manage the sender identity and visual identity used in company emails.';
  if(view==='team'&&profile?.role!=='owner'){$('#enh-content').innerHTML='<p class="admin-empty">Only the company Owner can manage team access.</p>';return;}
  if(view==='settings'&&profile?.role!=='owner'){$('#enh-content').innerHTML='<p class="admin-empty">Only the company Owner can change company email branding.</p>';return;}
- if(view==='communications')renderCommunications();if(view==='email')renderEmail();if(view==='team')renderTeam();if(view==='settings')renderSettings();
+ if(view==='communications')renderCommunications();if(view==='company-inbox')renderCompanyInbox();if(view==='email')renderEmail();if(view==='team')renderTeam();if(view==='settings')renderSettings();
 }
 function emailsFrom(v){return v.split(/[;,\n]/).map(x=>x.trim().toLowerCase()).filter(Boolean);}
 function validEmails(a){return a.every(x=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));}
@@ -146,6 +148,79 @@ async function renderCommunications(){
  const general=channels.find(x=>x.slug==='general');if(general)await select({kind:'channel',id:general.id});
  if(commRefreshTimer)clearInterval(commRefreshTimer);
  commRefreshTimer=window.setInterval(()=>{if(selection)loadMessages();},12000);
+}
+
+
+async function renderCompanyInbox(){
+ $('#enh-content').innerHTML=`
+ <section class="enh-card company-inbox-card">
+  <div class="enh-card-head"><div><p class="admin-overline">RESEND / SHARED INBOX</p><h3>hello@nkabe.us</h3><p class="enh-muted">Shared company correspondence · Replies sent as Nkabe Inc</p></div><span id="company-inbox-status" class="enh-chip">Checking connection…</span></div>
+  <div id="company-inbox-setup" class="company-inbox-setup"></div>
+  <div id="company-inbox-layout" class="company-inbox-layout" hidden>
+   <aside><div class="company-inbox-list-head"><strong>Conversations</strong><button id="company-inbox-refresh" class="admin-text-button" type="button">Refresh</button></div><div id="company-inbox-threads" class="company-inbox-threads">Loading…</div></aside>
+   <section class="company-inbox-thread"><header><h4 id="company-inbox-subject">Select a conversation</h4><p id="company-inbox-participants"></p></header><div id="company-inbox-messages" class="company-inbox-messages"><p class="admin-empty">Choose an email conversation to read it.</p></div><form id="company-inbox-reply" class="company-inbox-reply" hidden><textarea id="company-inbox-reply-body" rows="4" maxlength="10000" required placeholder="Write a reply as Nkabe Inc…"></textarea><div><span>Sent from hello@nkabe.us · Nkabe Inc</span><button class="admin-primary" type="submit">Send reply ↗</button></div><p id="company-inbox-reply-status" class="admin-form-status"></p></form></section>
+  </div>
+ </section>`;
+ const call=async(body)=>{const {data,error}=await sb.functions.invoke('admin-communications',{body});if(error||data?.error)throw new Error(data?.error||error?.message||'Company inbox request failed.');return data;};
+ let inbox=null,selectedThread=null,selectedThreadData=null;
+ const isAdmin=['owner','admin'].includes(profile?.role);
+ const setupBox=$('#company-inbox-setup');
+ const setStatus=(label)=>$('#company-inbox-status').textContent=label;
+ const renderSetup=()=>{
+  if(!inbox){
+   setupBox.innerHTML=isAdmin?`<div class="company-inbox-empty"><h4>Connect the Nkabe company inbox</h4><p>Resend will create a shared inbox for hello@nkabe.us and generate a forwarding address. Zoho will continue to receive and retain the original messages.</p><button id="company-inbox-connect" class="admin-primary" type="button">Connect Resend inbox</button><p id="company-inbox-connect-status" class="admin-form-status"></p></div>`:'<p class="admin-empty">The Owner or an Admin needs to connect the company inbox first.</p>';
+   const button=$('#company-inbox-connect');if(button)button.addEventListener('click',async()=>{button.disabled=true;$('#company-inbox-connect-status').textContent='Connecting to Resend…';try{const result=await call({action:'inbox_setup'});inbox=result.inbox;renderConnected();}catch(e){$('#company-inbox-connect-status').textContent=e.message||'Could not connect Resend.';button.disabled=false;}});
+   return;
+  }
+  renderConnected();
+ };
+ const renderConnected=()=>{
+  setStatus(inbox.setup_status==='active'?'Receiving email':'Forwarding pending');
+  setupBox.innerHTML=`<div class="company-inbox-forward"><div><strong>Forwarding address</strong><p>Copy this address into Zoho Mail forwarding for hello@nkabe.us. Keep the original Zoho copy.</p><code>${esc(inbox.receiving_address||'Not returned by Resend')}</code></div><button id="company-inbox-copy-forward" class="admin-secondary" type="button">Copy address</button></div><p class="company-inbox-note">Zoho MX records are unchanged. Incoming mail appears here after Zoho forwarding is verified.</p>`;
+  $('#company-inbox-copy-forward').addEventListener('click',()=>{if(inbox.receiving_address)navigator.clipboard?.writeText(inbox.receiving_address);});
+  $('#company-inbox-layout').hidden=false;
+  loadThreads();
+ };
+ const threadSummary=(thread)=>{
+  const emails=Array.isArray(thread.emails)?thread.emails:[];
+  const latest=thread.last_email||thread.latest_email||emails[emails.length-1]||{};
+  return {subject:thread.subject||latest.subject||'(No subject)',preview:latest.text||latest.snippet||latest.preview||thread.preview||'',from:latest.from||thread.from||thread.participants?.[0]||'',date:latest.created_at||thread.last_message_at||thread.updated_at||thread.created_at||''};
+ };
+ const loadThreads=async()=>{
+  try{
+   const result=await call({action:'inbox_threads'});
+   const threads=result.threads||[];
+   $('#company-inbox-threads').innerHTML=threads.length?threads.map(t=>{const s=threadSummary(t);return `<button type="button" class="company-inbox-thread-item ${selectedThread===t.id?'selected':''}" data-thread-id="${esc(t.id)}"><strong>${esc(s.subject)}</strong><small>${esc(s.from)}</small><span>${esc(s.preview).slice(0,110)}</span><time>${s.date?esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(s.date))):''}</time></button>`;}).join(''):'<p class="admin-empty">No incoming conversations yet. Once Zoho forwarding is verified, new emails will appear here.</p>';
+   $('#company-inbox-threads').querySelectorAll('[data-thread-id]').forEach(b=>b.addEventListener('click',()=>loadThread(b.dataset.threadId)));
+  }catch(e){$('#company-inbox-threads').innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+ };
+ const loadThread=async(threadId)=>{
+  selectedThread=threadId;
+  try{
+   const result=await call({action:'inbox_thread',inbox_id:inbox.inbox_id,thread_id:threadId});
+   selectedThreadData=result.thread||{};
+   const emails=Array.isArray(selectedThreadData.emails)?selectedThreadData.emails:[];
+   $('#company-inbox-subject').textContent=selectedThreadData.subject||emails[0]?.subject||'(No subject)';
+   $('#company-inbox-participants').textContent=selectedThreadData.participants?.join(', ')||emails.map(e=>e.from).filter(Boolean).join(' · ');
+   $('#company-inbox-messages').innerHTML=emails.length?emails.map(e=>{const raw=e.text||e.html?.replace(/<[^>]*>/g,' ')||'Message content unavailable.';return `<article class="company-email-message"><div><strong>${esc(e.from||'Unknown sender')}</strong><time>${e.created_at?esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(e.created_at))):''}</time></div><p>${esc(raw)}</p></article>`;}).join(''):'<p class="admin-empty">No message content returned for this conversation.</p>';
+   const inbound=[...emails].reverse().find(e=>e.direction==='inbound'||!String(e.from||'').toLowerCase().includes('hello@nkabe.us'))||emails[emails.length-1];
+   $('#company-inbox-reply').hidden=!inbound?.id;
+   $('#company-inbox-reply').dataset.emailId=inbound?.id||'';
+   $('#company-inbox-threads').querySelectorAll('[data-thread-id]').forEach(b=>b.classList.toggle('selected',b.dataset.threadId===threadId));
+  }catch(e){$('#company-inbox-messages').innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+ };
+ $('#company-inbox-reply').addEventListener('submit',async e=>{
+  e.preventDefault();const form=e.currentTarget,button=form.querySelector('button'),body=$('#company-inbox-reply-body').value.trim();if(!body||!selectedThread)return;
+  button.disabled=true;$('#company-inbox-reply-status').textContent='Sending through Resend…';
+  try{await call({action:'inbox_reply',inbox_id:inbox.inbox_id,thread_id:selectedThread,email_id:form.dataset.emailId,text:body});$('#company-inbox-reply-body').value='';$('#company-inbox-reply-status').textContent='Reply accepted by Resend.';await loadThread(selectedThread);await loadThreads();}
+  catch(err){$('#company-inbox-reply-status').textContent=err.message||'Reply could not be sent.';}
+  finally{button.disabled=false;}
+ });
+ const refresh=$('#company-inbox-refresh');if(refresh)refresh.addEventListener('click',loadThreads);
+ try{const status=await call({action:'inbox_status'});inbox=status.inbox;if(inbox)renderConnected();else{setStatus('Not connected');renderSetup();}}
+ catch(e){setStatus('Connection error');setupBox.innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+ if(companyInboxTimer)clearInterval(companyInboxTimer);
+ companyInboxTimer=window.setInterval(()=>{if(inbox)loadThreads();},20000);
 }
 
 async function renderTeam(){
