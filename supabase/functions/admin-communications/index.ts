@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.86.0";
+import { Resend } from "npm:resend@6.34.1";
 
 const allowedOrigins = new Set(["https://nkabe.us","https://www.nkabe.us","https://desk.nkabe.us","https://nkabe-admin.nkabeinc.workers.dev","http://localhost:5500","http://127.0.0.1:5500"]);
 const jsonHeaders = { "Content-Type": "application/json; charset=utf-8" };
@@ -41,6 +42,115 @@ Deno.serve(async (request: Request) => {
   try { const raw = await request.text(); if (raw.length > 12000) return reply({ error: "Request is too large." }, 413, origin); payload = JSON.parse(raw); }
   catch { return reply({ error: "Invalid request." }, 400, origin); }
   const action = clean(payload.action, 32);
+  const resendKey = Deno.env.get("RESEND_API_KEY") ?? "";
+  const inboxEmail = "hello@nkabe.us";
+
+  if (action === "inbox_status") {
+    const { data, error } = await db.from("admin_email_inboxes").select("email_address,inbox_id,receiving_address,setup_status,last_event_at,created_at").eq("email_address", inboxEmail).maybeSingle();
+    if (error) return reply({ error: "Could not load the company inbox status." }, 500, origin);
+    return reply({ success: true, configured: Boolean(data), inbox: data ?? null }, 200, origin);
+  }
+
+  if (action === "inbox_setup") {
+    if (!["owner","admin"].includes(actor.role)) return reply({ error: "Only an Owner or Admin can connect the company inbox." }, 403, origin);
+    if (!resendKey) return reply({ error: "Resend is not configured on the server. Add RESEND_API_KEY to Supabase Edge Function secrets." }, 503, origin);
+    const resend = new Resend(resendKey);
+    let { data: saved, error: savedError } = await db.from("admin_email_inboxes").select("*").eq("email_address", inboxEmail).maybeSingle();
+    if (savedError) return reply({ error: "Could not check the existing inbox configuration." }, 500, origin);
+
+    if (!saved) {
+      const created = await resend.inboxes.create({
+        emailAddress: inboxEmail,
+        name: "Nkabe Inc — Company Inbox",
+        fromName: "Nkabe Inc",
+        forwarding: true,
+      });
+      if (created.error || !created.data?.id) {
+        const message = created.error?.message ?? "Resend did not return an inbox ID.";
+        console.error("Resend inbox creation failed:", created.error?.statusCode ?? "provider_error");
+        return reply({ error: message }, 502, origin);
+      }
+      const fetched = await resend.inboxes.get({ id: created.data.id });
+      const inbox = fetched.data ?? created.data;
+      const inserted = await db.from("admin_email_inboxes").insert({
+        email_address: inboxEmail,
+        inbox_id: created.data.id,
+        receiving_address: inbox.receiving_address ?? null,
+        setup_status: "forwarding_pending",
+        created_by: auth.user.id,
+      }).select("*").single();
+      if (inserted.error) {
+        console.error("Could not persist Resend inbox configuration:", inserted.error.code);
+        return reply({ error: "Resend created the inbox, but Nkabe could not save its configuration. Contact the administrator before retrying." }, 500, origin);
+      }
+      saved = inserted.data;
+    }
+
+    if (!saved.webhook_id || !saved.webhook_secret) {
+      const projectUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const endpoint = projectUrl.replace(/\/$/, "") + "/functions/v1/resend-inbox-webhook";
+      const webhook = await resend.webhooks.create({ endpoint, events: ["inbox.email.received"] });
+      if (webhook.error || !webhook.data?.id || !webhook.data?.signing_secret) {
+        console.error("Resend webhook registration failed:", webhook.error?.statusCode ?? "provider_error");
+        return reply({ error: webhook.error?.message ?? "Resend could not register the inbound webhook." }, 502, origin);
+      }
+      const updated = await db.from("admin_email_inboxes").update({
+        webhook_id: webhook.data.id,
+        webhook_secret: webhook.data.signing_secret,
+        updated_at: new Date().toISOString(),
+      }).eq("id", saved.id).select("*").single();
+      if (updated.error) return reply({ error: "Webhook was created but its verification secret could not be saved. Do not configure Zoho forwarding yet; contact the administrator." }, 500, origin);
+      saved = updated.data;
+    }
+    return reply({
+      success: true,
+      message: "Resend company inbox and signed inbound webhook are configured. Zoho forwarding is still pending.",
+      inbox: { email_address: saved.email_address, inbox_id: saved.inbox_id, receiving_address: saved.receiving_address, setup_status: saved.setup_status },
+    }, 200, origin);
+  }
+
+  if (action === "inbox_threads") {
+    if (!resendKey) return reply({ error: "Resend is not configured on the server." }, 503, origin);
+    const { data: saved } = await db.from("admin_email_inboxes").select("inbox_id").eq("email_address", inboxEmail).maybeSingle();
+    if (!saved) return reply({ error: "The company inbox has not been connected yet." }, 404, origin);
+    const resend = new Resend(resendKey);
+    const result = await resend.inboxes.threads.list({ inboxId: saved.inbox_id });
+    if (result.error) return reply({ error: result.error.message ?? "Could not load email conversations." }, 502, origin);
+    const raw = result.data as any;
+    const threads = Array.isArray(raw) ? raw : (raw?.data ?? []);
+    return reply({ success: true, threads }, 200, origin);
+  }
+
+  if (action === "inbox_thread") {
+    if (!resendKey) return reply({ error: "Resend is not configured on the server." }, 503, origin);
+    const inboxId = clean(payload.inbox_id, 64), threadId = clean(payload.thread_id, 64);
+    const { data: saved } = await db.from("admin_email_inboxes").select("inbox_id").eq("email_address", inboxEmail).maybeSingle();
+    if (!saved || saved.inbox_id !== inboxId || !threadId) return reply({ error: "Email conversation not found." }, 404, origin);
+    const resend = new Resend(resendKey);
+    const result = await resend.inboxes.threads.get({ inboxId, threadId });
+    if (result.error) return reply({ error: result.error.message ?? "Could not load the email conversation." }, 502, origin);
+    const thread = result.data as any;
+    const emailRows = Array.isArray(thread?.emails) ? thread.emails : [];
+    const fullEmails = await Promise.all(emailRows.map(async (item: any) => {
+      if (!item?.id) return item;
+      const full = await resend.inboxes.threads.emails.get({ inboxId, threadId, emailId: item.id });
+      return full.data ?? item;
+    }));
+    return reply({ success: true, thread: { ...thread, emails: fullEmails } }, 200, origin);
+  }
+
+  if (action === "inbox_reply") {
+    const inboxId = clean(payload.inbox_id, 64), threadId = clean(payload.thread_id, 64), emailId = clean(payload.email_id, 64);
+    const textBody = clean(payload.text, 10000);
+    if (!textBody || !emailId) return reply({ error: "Write a reply before sending." }, 400, origin);
+    const { data: saved } = await db.from("admin_email_inboxes").select("inbox_id").eq("email_address", inboxEmail).maybeSingle();
+    if (!saved || saved.inbox_id !== inboxId || !threadId) return reply({ error: "Email conversation not found." }, 404, origin);
+    if (!resendKey) return reply({ error: "Resend is not configured on the server." }, 503, origin);
+    const resend = new Resend(resendKey);
+    const result = await resend.inboxes.threads.emails.reply({ inboxId, threadId, emailId, text: textBody });
+    if (result.error) return reply({ error: result.error.message ?? "Could not send the reply." }, 502, origin);
+    return reply({ success: true, message: "Reply accepted by Resend.", email_id: result.data?.id ?? null }, 200, origin);
+  }
 
   if (action === "directory") {
     const { data, error } = await db.from("admin_users").select("user_id,display_name,role,company_email").eq("is_active", true).order("display_name", { ascending: true });
