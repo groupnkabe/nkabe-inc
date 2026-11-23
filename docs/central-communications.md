@@ -8,15 +8,15 @@
 - Internal direct messages and company/project channels are stored in Supabase and accessed only through the authenticated `admin-communications` Edge Function.
 - No DNS or MX records are changed by this feature.
 
-## Resend inbound mail and Inboxes
+## Inbound email routing
 
-Resend Inboxes supports threaded inboxes, assignments, drafts, folders, labels, collaboration notes and agent workflows. It requires an inbound address/domain configuration. The existing `nkabe.us` Zoho MX records must remain untouched during this first phase.
+Resend's standard inbound receiving API is used for the shared company mailbox. Resend Inboxes and the `inbox.email.received` event are not used.
 
-Before enabling inbound mail in the dashboard, choose an inbound routing approach:
-1. Keep Zoho as the primary mail host and configure per-mailbox forwarding to a Resend-managed inbound address on a separate subdomain or Resend-provided address; or
-2. Move only a dedicated mail subdomain to Resend and create new addresses there.
-
-Do not point the root `nkabe.us` MX records at Resend unless the company explicitly decides to migrate away from Zoho.
+- Keep Zoho as the primary mail host.
+- Use the Resend-provided `.resend.app` receiving address and configure Zoho to forward a copy of `hello@nkabe.us` there.
+- Do not point the root `nkabe.us` MX records at Resend.
+- The `email.received` webhook retrieves the message body through the Receiving API and stores it in Nkabe-owned Supabase tables.
+- Configure the webhook only after the receiving address is known and the signed webhook secret can be stored server-side.
 
 ## Internal communications
 
@@ -32,7 +32,7 @@ Do not point the root `nkabe.us` MX records at Resend unless the company explici
 2. Deploy the `admin-communications` Edge Function with JWT verification enabled.
 3. Merge the feature branch to `feature/admin-workspace` to trigger the configured Cloudflare Pages deployment.
 4. Verify with two active staff accounts: create a project channel, post a channel message, exchange direct messages, and send a branded email.
-5. Configure Resend inbound forwarding only after confirming the chosen routing plan. Set the Resend webhook secret as a Supabase Edge Function secret before registering the webhook.
+5. Configure the Resend-provided receiving address and Zoho forwarding only after the database migration and Edge Functions are deployed. The dashboard setup registers the signed webhook and stores its secret server-side.
 
 ## Limitations in this phase
 
@@ -40,30 +40,32 @@ Do not point the root `nkabe.us` MX records at Resend unless the company explici
 - Incoming external email is not yet mirrored into the dashboard. That requires an explicit Resend inbound route and webhook configuration.
 - Attachments, private project channels, and collaborative email drafts are follow-on work.
 
-## Resend shared company inbox
+## Shared company inbox — basic inbound receiving
 
-The first external mailbox connected is `hello@nkabe.us`.
+The first external mailbox is `hello@nkabe.us`. Zoho remains the mailbox host and retains the original message. The Nkabe dashboard is a shared reading and reply surface.
 
-- The dashboard creates a Resend Inbox with `forwarding: true`.
-- Resend returns a generated `receiving_address`; no root-domain MX change is needed.
-- A signed webhook subscribes to `inbox.email.received` and marks the inbox active after the first inbound message.
-- The `admin-communications` Edge Function exposes inbox status, thread listing, thread retrieval and threaded replies to active team members.
-- Replies use the inbox's configured `from_name` (Nkabe Inc) and `hello@nkabe.us` identity.
-- The Zoho mailbox must forward a copy to the Resend `receiving_address`. Keep the original Zoho copy; do not delete it.
-- The Resend API key must be a full-access key for inbox read and webhook registration. A sending-only key is insufficient.
-- The webhook signing secret is stored in a service-role-only table and is never returned to the browser.
+- Use Resend's standard inbound receiving address ending in `.resend.app`; do not create a Resend Inbox.
+- Register a signed webhook for `email.received`. The webhook retrieves the message through Resend's Receiving API and stores the content and metadata in Nkabe-owned Supabase tables.
+- No Anthropic Inbox classification is involved in this basic receiving flow.
+- No `nkabe.us` root MX records are changed. Zoho forwards a copy of `hello@nkabe.us` to the Resend-provided address.
+- Replies are sent through Resend from `Nkabe Inc <hello@nkabe.us>` and include `In-Reply-To` and `References` headers when available.
+- Webhook signing secrets and all email content remain server-side; browser users access messages only through the authenticated communications Edge Function.
 
-### Zoho forwarding steps
+### Setup
 
-1. In Zoho Mail Admin Console, open Users and select `hello@nkabe.us`.
-2. Open Mailbox Settings → Email Forwarding.
-3. Add the exact Resend receiving address displayed in the Nkabe dashboard.
-4. Complete the verification code sent to the Resend receiving address (the dashboard webhook records the event; if Zoho sends a verification code, check the Resend inbox).
-5. Keep the Zoho original-message retention option enabled.
-6. Send a test message to `hello@nkabe.us` from an external account and confirm it appears in both Zoho and the Nkabe dashboard.
+1. In Resend, open Emails → Receiving and copy the generated receiving address ending in `.resend.app`.
+2. In the Nkabe admin dashboard, open Company inbox and configure that receiving address. The dashboard registers the `email.received` webhook and stores its signing secret server-side.
+3. In Zoho Mail Admin Console, open Users → `hello@nkabe.us` → Mailbox Settings → Email Forwarding.
+4. Add the exact Resend receiving address shown in the dashboard and complete Zoho's verification.
+5. Keep Zoho's option to retain the original message enabled.
+6. Send a test message from an external account. Confirm it appears in both Zoho and the Nkabe dashboard, then reply from the dashboard and confirm the external sender receives it.
 
-Do not change the root `nkabe.us` MX records. Only the forwarding destination for the `hello@nkabe.us` mailbox is changed.
+Do not change the root `nkabe.us` MX records. Resend receiving must be configured with the Resend-provided address, not `hello@nkabe.us`.
 
-### Privacy note
+### Threading and security
 
-Resend's security documentation states that inbound Inbox message content is sent to Anthropic for automatic classification, even when the Inbox AI agent features are not enabled. Review this before forwarding real company correspondence. No email should be forwarded until the Owner has accepted this data-processing implication.
+- Inbound webhook signatures are verified against the raw request body.
+- Provider email IDs are unique to make webhook retries idempotent.
+- Conversations are matched using `Message-ID`, `In-Reply-To` and `References` headers. If a provider strips these headers, the email safely starts a new conversation rather than being guessed into an unrelated thread.
+- Email bodies are untrusted content. They are displayed as escaped text in the dashboard and must never trigger agent actions or privileged operations automatically.
+- Attachments are not downloaded or exposed in this first phase.

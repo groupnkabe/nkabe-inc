@@ -154,7 +154,7 @@ async function renderCommunications(){
 async function renderCompanyInbox(){
  $('#enh-content').innerHTML=`
  <section class="enh-card company-inbox-card">
-  <div class="enh-card-head"><div><p class="admin-overline">RESEND / SHARED INBOX</p><h3>hello@nkabe.us</h3><p class="enh-muted">Shared company correspondence · Replies sent as Nkabe Inc</p></div><span id="company-inbox-status" class="enh-chip">Checking connection…</span></div>
+  <div class="enh-card-head"><div><p class="admin-overline">RESEND / NKABE MAILBOX</p><h3>hello@nkabe.us</h3><p class="enh-muted">Zoho remains the mailbox host · Nkabe dashboard is the shared working view</p></div><span id="company-inbox-status" class="enh-chip">Checking connection…</span></div>
   <div id="company-inbox-setup" class="company-inbox-setup"></div>
   <div id="company-inbox-layout" class="company-inbox-layout" hidden>
    <aside><div class="company-inbox-list-head"><strong>Conversations</strong><button id="company-inbox-refresh" class="admin-text-button" type="button">Refresh</button></div><div id="company-inbox-threads" class="company-inbox-threads">Loading…</div></aside>
@@ -163,62 +163,44 @@ async function renderCompanyInbox(){
  </section>`;
  const call=async(body)=>{const {data,error}=await sb.functions.invoke('admin-communications',{body});if(error||data?.error)throw new Error(data?.error||error?.message||'Company inbox request failed.');return data;};
  let inbox=null,selectedThread=null,selectedThreadData=null;
- const isAdmin=['owner','admin'].includes(profile?.role);
- const setupBox=$('#company-inbox-setup');
- const setStatus=(label)=>$('#company-inbox-status').textContent=label;
+ const isAdmin=['owner','admin'].includes(profile?.role),setupBox=$('#company-inbox-setup');
+ const setStatus=label=>$('#company-inbox-status').textContent=label;
  const renderSetup=()=>{
   if(!inbox){
-   setupBox.innerHTML=isAdmin?`<div class="company-inbox-empty"><h4>Connect the Nkabe company inbox</h4><p>Resend will create a shared inbox for hello@nkabe.us and generate a forwarding address. Zoho will continue to receive and retain the original messages.</p><p class="company-inbox-privacy"><strong>Privacy notice:</strong> Resend says Inbox messages are sent to Anthropic for automatic classification even when AI agents are disabled. Do not enable Zoho forwarding until the company accepts this processing.</p><button id="company-inbox-connect" class="admin-primary" type="button">Connect Resend inbox</button><p id="company-inbox-connect-status" class="admin-form-status"></p></div>`:'<p class="admin-empty">The Owner or an Admin needs to connect the company inbox first.</p>';
-   const button=$('#company-inbox-connect');if(button)button.addEventListener('click',async()=>{button.disabled=true;$('#company-inbox-connect-status').textContent='Connecting to Resend…';try{const result=await call({action:'inbox_setup'});inbox=result.inbox;renderConnected();}catch(e){$('#company-inbox-connect-status').textContent=e.message||'Could not connect Resend.';button.disabled=false;}});
+   setupBox.innerHTML=isAdmin?`<div class="company-inbox-empty"><h4>Connect basic Resend receiving</h4>
+    <p>First open Resend → Emails → Receiving and copy the generated receiving address ending in <strong>.resend.app</strong>. Paste it below. This does not require changing nkabe.us DNS or MX records.</p>
+    <form id="company-inbox-connect-form" class="enh-form"><label>Resend receiving address <input id="company-inbox-address" type="email" required placeholder="your-address@xxxx.resend.app"></label><button id="company-inbox-connect" class="admin-primary" type="submit">Configure signed webhook ↗</button><p id="company-inbox-connect-status" class="admin-form-status"></p></form>
+    <p class="company-inbox-note">This uses Resend's standard email.received webhook and stores message content in Nkabe's Supabase database. It does not use Resend Inboxes or its AI classification feature.</p></div>`:'<p class="admin-empty">The Owner or an Admin needs to connect the company inbox first.</p>';
+   const form=$('#company-inbox-connect-form');if(form)form.addEventListener('submit',async e=>{e.preventDefault();const button=$('#company-inbox-connect');button.disabled=true;$('#company-inbox-connect-status').textContent='Registering signed inbound webhook…';try{const result=await call({action:'inbox_setup',receiving_address:$('#company-inbox-address').value.trim()});inbox=result.inbox;renderConnected();}catch(err){$('#company-inbox-connect-status').textContent=err.message||'Could not configure Resend receiving.';button.disabled=false;}});
    return;
-  }
-  renderConnected();
+  } renderConnected();
  };
  const renderConnected=()=>{
   setStatus(inbox.setup_status==='active'?'Receiving email':'Forwarding pending');
-  setupBox.innerHTML=`<div class="company-inbox-forward"><div><strong>Forwarding address</strong><p>Copy this address into Zoho Mail forwarding for hello@nkabe.us. Keep the original Zoho copy.</p><code>${esc(inbox.receiving_address||'Not returned by Resend')}</code></div><button id="company-inbox-copy-forward" class="admin-secondary" type="button">Copy address</button></div><p class="company-inbox-note">Zoho MX records are unchanged. Incoming mail appears here after Zoho forwarding is verified.</p>`;
+  setupBox.innerHTML=`<div class="company-inbox-forward"><div><strong>Zoho forwarding destination</strong><p>In Zoho Mail settings for hello@nkabe.us, add this address as a forwarding copy. Keep the original Zoho message.</p><code>${esc(inbox.receiving_address)}</code></div><button id="company-inbox-copy-forward" class="admin-secondary" type="button">Copy address</button></div><p class="company-inbox-note">No root-domain MX records were changed. Once Zoho forwarding is verified, incoming messages will appear below.</p>`;
   $('#company-inbox-copy-forward').addEventListener('click',()=>{if(inbox.receiving_address)navigator.clipboard?.writeText(inbox.receiving_address);});
-  $('#company-inbox-layout').hidden=false;
-  loadThreads();
- };
- const threadSummary=(thread)=>{
-  const emails=Array.isArray(thread.emails)?thread.emails:[];
-  const latest=thread.last_email||thread.latest_email||emails[emails.length-1]||{};
-  return {subject:thread.subject||latest.subject||'(No subject)',preview:latest.text||latest.snippet||latest.preview||thread.preview||'',from:latest.from||thread.from||thread.participants?.[0]||'',date:latest.created_at||thread.last_message_at||thread.updated_at||thread.created_at||''};
+  $('#company-inbox-layout').hidden=false;loadThreads();
  };
  const loadThreads=async()=>{
-  try{
-   const result=await call({action:'inbox_threads'});
-   const threads=result.threads||[];
-   $('#company-inbox-threads').innerHTML=threads.length?threads.map(t=>{const s=threadSummary(t);return `<button type="button" class="company-inbox-thread-item ${selectedThread===t.id?'selected':''}" data-thread-id="${esc(t.id)}"><strong>${esc(s.subject)}</strong><small>${esc(s.from)}</small><span>${esc(s.preview).slice(0,110)}</span><time>${s.date?esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(s.date))):''}</time></button>`;}).join(''):'<p class="admin-empty">No incoming conversations yet. Once Zoho forwarding is verified, new emails will appear here.</p>';
+  try{const result=await call({action:'inbox_threads'}),threads=result.threads||[];
+   $('#company-inbox-threads').innerHTML=threads.length?threads.map(t=>`<button type="button" class="company-inbox-thread-item ${selectedThread===t.id?'selected':''}" data-thread-id="${esc(t.id)}"><strong>${esc(t.subject||'(No subject)')}</strong><small>${esc((t.participants||[]).join(', '))}</small><span>${esc(t.preview||'').slice(0,110)}</span><time>${t.last_message_at?esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(t.last_message_at))):''}</time></button>`).join(''):'<p class="admin-empty">No incoming conversations yet. Forwarding from Zoho has not delivered any messages.</p>';
    $('#company-inbox-threads').querySelectorAll('[data-thread-id]').forEach(b=>b.addEventListener('click',()=>loadThread(b.dataset.threadId)));
-  }catch(e){$('#company-inbox-threads').innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+  }catch(err){$('#company-inbox-threads').innerHTML='<p class="admin-empty">'+esc(err.message)+'</p>';}
  };
- const loadThread=async(threadId)=>{
-  selectedThread=threadId;
-  try{
-   const result=await call({action:'inbox_thread',inbox_id:inbox.inbox_id,thread_id:threadId});
-   selectedThreadData=result.thread||{};
-   const emails=Array.isArray(selectedThreadData.emails)?selectedThreadData.emails:[];
-   $('#company-inbox-subject').textContent=selectedThreadData.subject||emails[0]?.subject||'(No subject)';
-   $('#company-inbox-participants').textContent=selectedThreadData.participants?.join(', ')||emails.map(e=>e.from).filter(Boolean).join(' · ');
-   $('#company-inbox-messages').innerHTML=emails.length?emails.map(e=>{const raw=e.text||e.html?.replace(/<[^>]*>/g,' ')||'Message content unavailable.';return `<article class="company-email-message"><div><strong>${esc(e.from||'Unknown sender')}</strong><time>${e.created_at?esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(e.created_at))):''}</time></div><p>${esc(raw)}</p></article>`;}).join(''):'<p class="admin-empty">No message content returned for this conversation.</p>';
-   const inbound=[...emails].reverse().find(e=>e.direction==='inbound'||!String(e.from||'').toLowerCase().includes('hello@nkabe.us'))||emails[emails.length-1];
-   $('#company-inbox-reply').hidden=!inbound?.id;
-   $('#company-inbox-reply').dataset.emailId=inbound?.id||'';
-   $('#company-inbox-threads').querySelectorAll('[data-thread-id]').forEach(b=>b.classList.toggle('selected',b.dataset.threadId===threadId));
-  }catch(e){$('#company-inbox-messages').innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+ const loadThread=async id=>{
+  selectedThread=id;
+  try{const result=await call({action:'inbox_thread',thread_id:id});selectedThreadData=result.thread||{};const emails=selectedThreadData.emails||[];
+   $('#company-inbox-subject').textContent=selectedThreadData.subject||'(No subject)';
+   $('#company-inbox-participants').textContent=(selectedThreadData.participants||[]).join(' · ');
+   $('#company-inbox-messages').innerHTML=emails.length?emails.map(m=>{const raw=m.text_body||m.html_body?.replace(/<[^>]*>/g,' ')||'Message content unavailable.';return `<article class="company-email-message"><div><strong>${esc(m.from_address||'Unknown sender')}</strong><time>${m.created_at?esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(m.created_at))):''}</time></div><p>${esc(raw)}</p></article>`;}).join(''):'<p class="admin-empty">No message content available.</p>';
+   $('#company-inbox-reply').hidden=!emails.some(m=>m.direction==='inbound');
+   $('#company-inbox-threads').querySelectorAll('[data-thread-id]').forEach(b=>b.classList.toggle('selected',b.dataset.threadId===id));
+  }catch(err){$('#company-inbox-messages').innerHTML='<p class="admin-empty">'+esc(err.message)+'</p>';}
  };
- $('#company-inbox-reply').addEventListener('submit',async e=>{
-  e.preventDefault();const form=e.currentTarget,button=form.querySelector('button'),body=$('#company-inbox-reply-body').value.trim();if(!body||!selectedThread)return;
-  button.disabled=true;$('#company-inbox-reply-status').textContent='Sending through Resend…';
-  try{await call({action:'inbox_reply',inbox_id:inbox.inbox_id,thread_id:selectedThread,email_id:form.dataset.emailId,text:body});$('#company-inbox-reply-body').value='';$('#company-inbox-reply-status').textContent='Reply accepted by Resend.';await loadThread(selectedThread);await loadThreads();}
-  catch(err){$('#company-inbox-reply-status').textContent=err.message||'Reply could not be sent.';}
-  finally{button.disabled=false;}
- });
- const refresh=$('#company-inbox-refresh');if(refresh)refresh.addEventListener('click',loadThreads);
+ $('#company-inbox-reply').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button'),body=$('#company-inbox-reply-body').value.trim();if(!body||!selectedThread)return;button.disabled=true;$('#company-inbox-reply-status').textContent='Sending through Resend…';try{await call({action:'inbox_reply',thread_id:selectedThread,text:body});$('#company-inbox-reply-body').value='';$('#company-inbox-reply-status').textContent='Reply sent.';await loadThread(selectedThread);await loadThreads();}catch(err){$('#company-inbox-reply-status').textContent=err.message||'Reply could not be sent.';}finally{button.disabled=false;}});
+ $('#company-inbox-refresh').addEventListener('click',loadThreads);
  try{const status=await call({action:'inbox_status'});inbox=status.inbox;if(inbox)renderConnected();else{setStatus('Not connected');renderSetup();}}
- catch(e){setStatus('Connection error');setupBox.innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+ catch(err){setStatus('Connection error');setupBox.innerHTML='<p class="admin-empty">'+esc(err.message)+'</p>';}
  if(companyInboxTimer)clearInterval(companyInboxTimer);
  companyInboxTimer=window.setInterval(()=>{if(inbox)loadThreads();},20000);
 }

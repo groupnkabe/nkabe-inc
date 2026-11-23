@@ -46,7 +46,9 @@ Deno.serve(async (request: Request) => {
   const inboxEmail = "hello@nkabe.us";
 
   if (action === "inbox_status") {
-    const { data, error } = await db.from("admin_email_inboxes").select("email_address,inbox_id,receiving_address,setup_status,last_event_at,created_at").eq("email_address", inboxEmail).maybeSingle();
+    const { data, error } = await db.from("admin_inbound_email_settings")
+      .select("email_address,receiving_address,setup_status,last_event_at,created_at")
+      .eq("email_address", inboxEmail).maybeSingle();
     if (error) return reply({ error: "Could not load the company inbox status." }, 500, origin);
     return reply({ success: true, configured: Boolean(data), inbox: data ?? null }, 200, origin);
   }
@@ -54,109 +56,109 @@ Deno.serve(async (request: Request) => {
   if (action === "inbox_setup") {
     if (!["owner","admin"].includes(actor.role)) return reply({ error: "Only an Owner or Admin can connect the company inbox." }, 403, origin);
     if (!resendKey) return reply({ error: "Resend is not configured on the server. Add RESEND_API_KEY to Supabase Edge Function secrets." }, 503, origin);
-    const resend = new Resend(resendKey);
-    let { data: saved, error: savedError } = await db.from("admin_email_inboxes").select("*").eq("email_address", inboxEmail).maybeSingle();
-    if (savedError) return reply({ error: "Could not check the existing inbox configuration." }, 500, origin);
-
+    const receivingAddress = clean(payload.receiving_address, 254).toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.resend\.app$/.test(receivingAddress)) {
+      return reply({ error: "Enter the Resend-provided receiving address ending in .resend.app. Do not enter hello@nkabe.us here." }, 400, origin);
+    }
+    let { data: saved, error: savedError } = await db.from("admin_inbound_email_settings")
+      .select("*").eq("email_address", inboxEmail).maybeSingle();
+    if (savedError) return reply({ error: "Could not check the existing inbound configuration." }, 500, origin);
+    if (saved && saved.receiving_address !== receivingAddress) {
+      return reply({ error: "A different Resend receiving address is already configured. Contact the Owner before changing it." }, 409, origin);
+    }
     if (!saved) {
-      const created = await resend.inboxes.create({
-        emailAddress: inboxEmail,
-        name: "Nkabe Inc — Company Inbox",
-        fromName: "Nkabe Inc",
-        forwarding: true,
-      });
-      if (created.error || !created.data?.id) {
-        const status = created.error?.statusCode ?? 0;
-        const message = status === 401
-          ? "The stored Resend API key does not have Inbox management permissions. Replace RESEND_API_KEY in Supabase with a full-access Resend API key; do not paste the key into chat."
-          : status === 422
-            ? "Resend could not create the inbox. Check that nkabe.us is verified for sending and that your Resend team has an inbound receiving domain configured."
-            : status === 403
-              ? "Your Resend plan or account permissions do not allow another Inbox. Check the Inbox allowance in Resend."
-              : created.error?.message ?? "Resend did not return an inbox ID.";
-        console.error("Resend inbox creation failed:", status || "provider_error");
-        return reply({ error: message }, 502, origin);
-      }
-      const fetched = await resend.inboxes.get({ id: created.data.id });
-      const inbox = fetched.data ?? created.data;
-      const inserted = await db.from("admin_email_inboxes").insert({
-        email_address: inboxEmail,
-        inbox_id: created.data.id,
-        receiving_address: inbox.receiving_address ?? null,
-        setup_status: "forwarding_pending",
-        created_by: auth.user.id,
+      const inserted = await db.from("admin_inbound_email_settings").insert({
+        email_address: inboxEmail, receiving_address: receivingAddress,
+        setup_status: "webhook_pending", created_by: auth.user.id
       }).select("*").single();
-      if (inserted.error) {
-        console.error("Could not persist Resend inbox configuration:", inserted.error.code);
-        return reply({ error: "Resend created the inbox, but Nkabe could not save its configuration. Contact the administrator before retrying." }, 500, origin);
-      }
+      if (inserted.error) return reply({ error: "Could not save the receiving address." }, 500, origin);
       saved = inserted.data;
     }
-
     if (!saved.webhook_id || !saved.webhook_secret) {
-      const projectUrl = Deno.env.get("SUPABASE_URL") ?? "";
-      const endpoint = projectUrl.replace(/\/$/, "") + "/functions/v1/resend-inbox-webhook";
-      const webhook = await resend.webhooks.create({ endpoint, events: ["inbox.email.received"] });
+      const endpoint = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "") + "/functions/v1/resend-inbox-webhook";
+      const webhook = await new Resend(resendKey).webhooks.create({ endpoint, events: ["email.received"] });
       if (webhook.error || !webhook.data?.id || !webhook.data?.signing_secret) {
-        console.error("Resend webhook registration failed:", webhook.error?.statusCode ?? "provider_error");
-        return reply({ error: webhook.error?.message ?? "Resend could not register the inbound webhook." }, 502, origin);
+        console.error("Resend inbound webhook registration failed:", webhook.error?.statusCode ?? "provider_error");
+        return reply({ error: webhook.error?.message ?? "Resend could not register the inbound email webhook." }, 502, origin);
       }
-      const updated = await db.from("admin_email_inboxes").update({
-        webhook_id: webhook.data.id,
-        webhook_secret: webhook.data.signing_secret,
-        updated_at: new Date().toISOString(),
+      const updated = await db.from("admin_inbound_email_settings").update({
+        webhook_id: webhook.data.id, webhook_secret: webhook.data.signing_secret,
+        setup_status: "forwarding_pending", updated_at: new Date().toISOString()
       }).eq("id", saved.id).select("*").single();
-      if (updated.error) return reply({ error: "Webhook was created but its verification secret could not be saved. Do not configure Zoho forwarding yet; contact the administrator." }, 500, origin);
+      if (updated.error) return reply({ error: "The Resend webhook was created, but its signing secret could not be saved. Do not configure Zoho forwarding yet." }, 500, origin);
       saved = updated.data;
     }
-    return reply({
-      success: true,
-      message: "Resend company inbox and signed inbound webhook are configured. Zoho forwarding is still pending.",
-      inbox: { email_address: saved.email_address, inbox_id: saved.inbox_id, receiving_address: saved.receiving_address, setup_status: saved.setup_status },
-    }, 200, origin);
+    return reply({ success: true, message: "Basic Resend inbound receiving and the signed webhook are configured. Zoho forwarding is still pending.",
+      inbox: { email_address: saved.email_address, receiving_address: saved.receiving_address, setup_status: saved.setup_status } }, 200, origin);
   }
 
   if (action === "inbox_threads") {
-    if (!resendKey) return reply({ error: "Resend is not configured on the server." }, 503, origin);
-    const { data: saved } = await db.from("admin_email_inboxes").select("inbox_id").eq("email_address", inboxEmail).maybeSingle();
-    if (!saved) return reply({ error: "The company inbox has not been connected yet." }, 404, origin);
-    const resend = new Resend(resendKey);
-    const result = await resend.inboxes.threads.list({ inboxId: saved.inbox_id });
-    if (result.error) return reply({ error: result.error.message ?? "Could not load email conversations." }, 502, origin);
-    const raw = result.data as any;
-    const threads = Array.isArray(raw) ? raw : (raw?.data ?? []);
-    return reply({ success: true, threads }, 200, origin);
+    const { data, error } = await db.from("admin_inbound_email_threads")
+      .select("id,subject,participants,preview,last_message_at,created_at")
+      .eq("email_address", inboxEmail).order("last_message_at", { ascending: false }).limit(100);
+    if (error) return reply({ error: "Could not load email conversations." }, 500, origin);
+    return reply({ success: true, threads: data ?? [] }, 200, origin);
   }
 
   if (action === "inbox_thread") {
-    if (!resendKey) return reply({ error: "Resend is not configured on the server." }, 503, origin);
-    const inboxId = clean(payload.inbox_id, 64), threadId = clean(payload.thread_id, 64);
-    const { data: saved } = await db.from("admin_email_inboxes").select("inbox_id").eq("email_address", inboxEmail).maybeSingle();
-    if (!saved || saved.inbox_id !== inboxId || !threadId) return reply({ error: "Email conversation not found." }, 404, origin);
-    const resend = new Resend(resendKey);
-    const result = await resend.inboxes.threads.get({ inboxId, threadId });
-    if (result.error) return reply({ error: result.error.message ?? "Could not load the email conversation." }, 502, origin);
-    const thread = result.data as any;
-    const emailRows = Array.isArray(thread?.emails) ? thread.emails : [];
-    const fullEmails = await Promise.all(emailRows.map(async (item: any) => {
-      if (!item?.id) return item;
-      const full = await resend.inboxes.threads.emails.get({ inboxId, threadId, emailId: item.id });
-      return full.data ?? item;
-    }));
-    return reply({ success: true, thread: { ...thread, emails: fullEmails } }, 200, origin);
+    const threadId = clean(payload.thread_id, 64);
+    if (!threadId) return reply({ error: "Email conversation not found." }, 404, origin);
+    const { data: thread, error: threadError } = await db.from("admin_inbound_email_threads")
+      .select("id,email_address,subject,participants,preview,last_message_at")
+      .eq("id", threadId).eq("email_address", inboxEmail).maybeSingle();
+    if (threadError || !thread) return reply({ error: "Email conversation not found." }, 404, origin);
+    const { data: emails, error } = await db.from("admin_inbound_email_messages")
+      .select("id,provider_email_id,direction,from_address,to_addresses,cc_addresses,subject,text_body,html_body,message_id,in_reply_to,reference_ids,created_at")
+      .eq("thread_id", threadId).order("created_at", { ascending: true }).limit(200);
+    if (error) return reply({ error: "Could not load the email conversation." }, 500, origin);
+    return reply({ success: true, thread: { ...thread, emails: emails ?? [] } }, 200, origin);
   }
 
   if (action === "inbox_reply") {
-    const inboxId = clean(payload.inbox_id, 64), threadId = clean(payload.thread_id, 64), emailId = clean(payload.email_id, 64);
-    const textBody = clean(payload.text, 10000);
-    if (!textBody || !emailId) return reply({ error: "Write a reply before sending." }, 400, origin);
-    const { data: saved } = await db.from("admin_email_inboxes").select("inbox_id").eq("email_address", inboxEmail).maybeSingle();
-    if (!saved || saved.inbox_id !== inboxId || !threadId) return reply({ error: "Email conversation not found." }, 404, origin);
+    const threadId = clean(payload.thread_id, 64), textBody = clean(payload.text, 10000);
+    if (!threadId || !textBody) return reply({ error: "Write a reply before sending." }, 400, origin);
     if (!resendKey) return reply({ error: "Resend is not configured on the server." }, 503, origin);
-    const resend = new Resend(resendKey);
-    const result = await resend.inboxes.threads.emails.reply({ inboxId, threadId, emailId, text: textBody });
-    if (result.error) return reply({ error: result.error.message ?? "Could not send the reply." }, 502, origin);
-    return reply({ success: true, message: "Reply accepted by Resend.", email_id: result.data?.id ?? null }, 200, origin);
+    const { data: thread } = await db.from("admin_inbound_email_threads")
+      .select("id,email_address,subject").eq("id", threadId).eq("email_address", inboxEmail).maybeSingle();
+    if (!thread) return reply({ error: "Email conversation not found." }, 404, origin);
+    const { data: latest } = await db.from("admin_inbound_email_messages")
+      .select("from_address,message_id,reference_ids,headers,subject").eq("thread_id", threadId)
+      .eq("direction", "inbound").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!latest?.from_address) return reply({ error: "There is no inbound sender to reply to." }, 400, origin);
+    const headerBag = latest.headers && typeof latest.headers === "object" ? latest.headers as Record<string, unknown> : {};
+    const replyToKey = Object.keys(headerBag).find(key => key.toLowerCase() === "reply-to");
+    const replyToValue = replyToKey ? String(headerBag[replyToKey] ?? "") : "";
+    const replyToCandidate = replyToValue.match(/<([^>]+)>/)?.[1] ?? replyToValue;
+    const fromCandidate = latest.from_address.match(/<([^>]+)>/)?.[1] ?? latest.from_address;
+    const recipient = replyToCandidate || fromCandidate;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return reply({ error: "The reply address is invalid; reply cannot be sent." }, 400, origin);
+    const refs = Array.isArray(latest.reference_ids) ? latest.reference_ids.filter((x: unknown) => typeof x === "string") : [];
+    if (latest.message_id && !refs.includes(latest.message_id)) refs.push(latest.message_id);
+    const htmlBody = `<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${textBody.replace(/[&<>"]/g, (ch) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[ch] ?? ch))}</div><p style="color:#777;font-size:12px">Nkabe Inc · hello@nkabe.us</p>`;
+    const sent = await new Resend(resendKey).emails.send({
+      from: "Nkabe Inc <hello@nkabe.us>", to: [recipient],
+      subject: /^re:/i.test(thread.subject || latest.subject || "") ? (thread.subject || latest.subject) : `Re: ${thread.subject || latest.subject || "(No subject)"}`,
+      text: textBody, html: htmlBody, replyTo: "hello@nkabe.us",
+      headers: {
+        ...(latest.message_id ? { "In-Reply-To": latest.message_id } : {}),
+        ...(refs.length ? { "References": refs.join(" ") } : {})
+      }
+    });
+    if (sent.error || !sent.data?.id) return reply({ error: sent.error?.message ?? "Resend could not send the reply." }, 502, origin);
+    const sentDetails = await new Resend(resendKey).emails.get(sent.data.id);
+    const outboundMessageId = sentDetails.data?.message_id ?? null;
+    const inserted = await db.from("admin_inbound_email_messages").insert({
+      thread_id: threadId, email_address: inboxEmail, provider_email_id: sent.data.id,
+      direction: "outbound", from_address: "Nkabe Inc <hello@nkabe.us>",
+      to_addresses: [recipient], cc_addresses: [], subject: thread.subject,
+      text_body: textBody, html_body: htmlBody, message_id: outboundMessageId,
+      in_reply_to: latest.message_id, reference_ids: refs, created_at: new Date().toISOString()
+    });
+    if (inserted.error) console.error("Sent reply but could not save local copy:", inserted.error.code);
+    await db.from("admin_inbound_email_threads").update({
+      last_message_at: new Date().toISOString(), preview: textBody.slice(0, 240)
+    }).eq("id", threadId);
+    return reply({ success: true, message: "Reply accepted by Resend.", email_id: sent.data.id }, 200, origin);
   }
 
   if (action === "directory") {
