@@ -66,8 +66,15 @@ Deno.serve(async (request: Request) => {
         forwarding: true,
       });
       if (created.error || !created.data?.id) {
-        const message = created.error?.message ?? "Resend did not return an inbox ID.";
-        console.error("Resend inbox creation failed:", created.error?.statusCode ?? "provider_error");
+        const status = created.error?.statusCode ?? 0;
+        const message = status === 401
+          ? "The stored Resend API key does not have Inbox management permissions. Replace RESEND_API_KEY in Supabase with a full-access Resend API key; do not paste the key into chat."
+          : status === 422
+            ? "Resend could not create the inbox. Check that nkabe.us is verified for sending and that your Resend team has an inbound receiving domain configured."
+            : status === 403
+              ? "Your Resend plan or account permissions do not allow another Inbox. Check the Inbox allowance in Resend."
+              : created.error?.message ?? "Resend did not return an inbox ID.";
+        console.error("Resend inbox creation failed:", status || "provider_error");
         return reply({ error: message }, 502, origin);
       }
       const fetched = await resend.inboxes.get({ id: created.data.id });
