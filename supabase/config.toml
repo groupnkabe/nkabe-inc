@@ -1,3 +1,11 @@
 [functions.submit-website-form]
 verify_jwt = false
-\n[functions.send-admin-email]\nverify_jwt = true\n\n[functions.manage-admin-team]\nverify_jwt = true\n
+
+[functions.send-admin-email]
+verify_jwt = true
+
+[functions.manage-admin-team]
+verify_jwt = true
+
+[functions.admin-communications]
+verify_jwt = true
