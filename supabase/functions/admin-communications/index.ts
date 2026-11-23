@@ -122,7 +122,7 @@ Deno.serve(async (request: Request) => {
       .select("id,email_address,subject").eq("id", threadId).eq("email_address", inboxEmail).maybeSingle();
     if (!thread) return reply({ error: "Email conversation not found." }, 404, origin);
     const { data: latest } = await db.from("admin_inbound_email_messages")
-      .select("from_address,message_id,reference_ids,subject").eq("thread_id", threadId)
+      .select("from_address,message_id,reference_ids,headers,subject").eq("thread_id", threadId)
       .eq("direction", "inbound").order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!latest?.from_address) return reply({ error: "There is no inbound sender to reply to." }, 400, origin);
     const recipient = latest.from_address.match(/<([^>]+)>/)?.[1] ?? latest.from_address;
