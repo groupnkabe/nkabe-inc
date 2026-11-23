@@ -134,19 +134,19 @@ Deno.serve(async (request: Request) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return reply({ error: "The reply address is invalid; reply cannot be sent." }, 400, origin);
     const refs = Array.isArray(latest.reference_ids) ? latest.reference_ids.filter((x: unknown) => typeof x === "string") : [];
     if (latest.message_id && !refs.includes(latest.message_id)) refs.push(latest.message_id);
-    const outboundMessageId = `<nkabe-${crypto.randomUUID()}@nkabe.us>`;
     const htmlBody = `<div style="font-family:Arial,sans-serif;white-space:pre-wrap">${textBody.replace(/[&<>"]/g, (ch) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[ch] ?? ch))}</div><p style="color:#777;font-size:12px">Nkabe Inc · hello@nkabe.us</p>`;
     const sent = await new Resend(resendKey).emails.send({
       from: "Nkabe Inc <hello@nkabe.us>", to: [recipient],
       subject: /^re:/i.test(thread.subject || latest.subject || "") ? (thread.subject || latest.subject) : `Re: ${thread.subject || latest.subject || "(No subject)"}`,
       text: textBody, html: htmlBody, replyTo: "hello@nkabe.us",
       headers: {
-        "Message-ID": outboundMessageId,
         ...(latest.message_id ? { "In-Reply-To": latest.message_id } : {}),
         ...(refs.length ? { "References": refs.join(" ") } : {})
       }
     });
     if (sent.error || !sent.data?.id) return reply({ error: sent.error?.message ?? "Resend could not send the reply." }, 502, origin);
+    const sentDetails = await new Resend(resendKey).emails.get(sent.data.id);
+    const outboundMessageId = sentDetails.data?.message_id ?? null;
     const inserted = await db.from("admin_inbound_email_messages").insert({
       thread_id: threadId, email_address: inboxEmail, provider_email_id: sent.data.id,
       direction: "outbound", from_address: "Nkabe Inc <hello@nkabe.us>",
