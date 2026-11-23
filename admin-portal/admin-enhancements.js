@@ -3,11 +3,12 @@ const cfg=window.NKABE_SITE_CONFIG||{};
 const sb=createClient((cfg.supabaseUrl||'').trim(),(cfg.supabaseAnonKey||'').trim());
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let currentUser=null,profile=null,activeEnhView='email';
+let currentUser=null,profile=null,activeEnhView='email',commRefreshTimer=null;
 const notify=m=>{const el=$('#global-status');if(el){el.textContent=m;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3500);}};
 function ensureShell(){
  const nav=$('.admin-nav'),workspace=$('#workspace-view');if(!nav||!workspace||$('#admin-enh-view'))return;
  nav.insertAdjacentHTML('beforeend',`
+  <button class="admin-nav-item" data-enh-view="communications"><span>◉</span> Communications</button>
   <button class="admin-nav-item" data-enh-view="email"><span>✉</span> Email</button>
   <button class="admin-nav-item" data-enh-view="team" id="team-nav"><span>♙</span> Team</button>
   <button class="admin-nav-item" data-enh-view="settings" id="settings-nav"><span>⚙</span> Settings</button>`);
@@ -23,15 +24,16 @@ function setNavActive(view){
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
 }
 function openEnhView(view){
+ if(view!=='communications'&&commRefreshTimer){clearInterval(commRefreshTimer);commRefreshTimer=null;}
  activeEnhView=view;ensureShell();
  $('#overview-view').hidden=true;$('#inbox-view').hidden=true;$('#admin-enh-view').hidden=false;
  document.querySelectorAll('.admin-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.enhView===view));
- $('#page-title').textContent=view==='email'?'Company email':view==='team'?'Team management':'Email branding';
- $('#enh-title').textContent=view==='email'?'Company email':view==='team'?'Team management':'Email branding';
- $('#enh-subtitle').textContent=view==='email'?'Compose branded messages and review outgoing mail.':view==='team'?'Invite colleagues and manage their Nkabe workspace access.':'Manage the sender identity and visual identity used in company emails.';
+ $('#page-title').textContent=view==='communications'?'Communications':view==='email'?'Company email':view==='team'?'Team management':'Email branding';
+ $('#enh-title').textContent=view==='communications'?'Team communications':view==='email'?'Company email':view==='team'?'Team management':'Email branding';
+ $('#enh-subtitle').textContent=view==='communications'?'Direct messages, company updates and project collaboration.':view==='email'?'Compose branded messages and review outgoing mail.':view==='team'?'Invite colleagues and manage their Nkabe workspace access.':'Manage the sender identity and visual identity used in company emails.';
  if(view==='team'&&profile?.role!=='owner'){$('#enh-content').innerHTML='<p class="admin-empty">Only the company Owner can manage team access.</p>';return;}
  if(view==='settings'&&profile?.role!=='owner'){$('#enh-content').innerHTML='<p class="admin-empty">Only the company Owner can change company email branding.</p>';return;}
- if(view==='email')renderEmail();if(view==='team')renderTeam();if(view==='settings')renderSettings();
+ if(view==='communications')renderCommunications();if(view==='email')renderEmail();if(view==='team')renderTeam();if(view==='settings')renderSettings();
 }
 function emailsFrom(v){return v.split(/[;,\n]/).map(x=>x.trim().toLowerCase()).filter(Boolean);}
 function validEmails(a){return a.every(x=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x));}
@@ -63,7 +65,6 @@ async function renderEmail(){
   const {data,error}=await sb.from('admin_outbound_emails').insert({to_emails:to,cc_emails:cc,bcc_emails:bcc,subject,body,created_by:currentUser.id,delivery_status:'draft'}).select('id').single();
   if(error)throw error;return data.id;
  };
- if(profile?.role==='staff'){const sendButton=$('#enh-compose').querySelector('button[type=submit]');sendButton.disabled=true;sendButton.textContent='Admin or Owner required to send';}
  $('#enh-save').addEventListener('click',async()=>{try{const id=await createDraft();$('#enh-compose-status').textContent='Draft saved.';notify('Email draft saved.');await load();}catch(e){$('#enh-compose-status').textContent=e.message||'Could not save draft.';}});
  $('#enh-compose').addEventListener('submit',async e=>{
   e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');btn.disabled=true;$('#enh-compose-status').textContent='Saving and sending…';
@@ -75,6 +76,78 @@ async function renderEmail(){
  });
  $('#enh-reload-mail').addEventListener('click',load);await load();
 }
+
+async function renderCommunications(){
+ const canCreate=['owner','admin'].includes(profile?.role);
+ $('#enh-content').innerHTML=`
+ <div class="comm-layout">
+  <aside class="comm-sidebar">
+   <div class="comm-sidebar-head"><strong>Company channels</strong><button id="comm-refresh" class="admin-text-button" type="button">Refresh</button></div>
+   <div id="comm-channel-list" class="comm-list">Loading channels…</div>
+   <div class="comm-sidebar-head comm-people-head"><strong>Team members</strong></div>
+   <div id="comm-people-list" class="comm-list">Loading team…</div>
+   ${canCreate?`<form id="comm-create-channel" class="comm-create-form"><strong>Start a project channel</strong><input id="comm-channel-name" maxlength="80" required placeholder="e.g. nKABE OS pilot"><input id="comm-channel-description" maxlength="500" placeholder="What is this project about?"><button class="admin-secondary" type="submit">Create channel +</button><p id="comm-create-status" class="admin-form-status"></p></form>`:''}
+  </aside>
+  <section class="comm-main">
+   <header class="comm-main-head"><div><p class="admin-overline">NKABE INC. / TEAM SPACE</p><h3 id="comm-title">Choose a channel or colleague</h3><p id="comm-subtitle">Discuss work, share updates and coordinate projects.</p></div><span class="enh-chip">Internal · Private</span></header>
+   <div id="comm-message-list" class="comm-message-list"><div class="admin-detail-empty"><span>◉</span><h3>Your team workspace</h3><p>Select General, a project channel or a colleague to start communicating.</p></div></div>
+   <form id="comm-message-form" class="comm-message-form" hidden><textarea id="comm-message-body" rows="3" maxlength="5000" required placeholder="Write a message…"></textarea><div><span>Messages are visible only to authorised Nkabe team members.</span><button class="admin-primary" type="submit">Send message ↗</button></div></form>
+  </section>
+ </div>`;
+ let channels=[],members=[],selection=null;
+ const call=async(body)=>{const {data,error}=await sb.functions.invoke('admin-communications',{body});if(error||data?.error)throw new Error(data?.error||error?.message||'Communications request failed.');return data;};
+ const loadLists=async()=>{
+  try{
+   const [c,d]=await Promise.all([call({action:'channels'}),call({action:'directory'})]);
+   channels=c.channels||[];members=d.members||[];
+   $('#comm-channel-list').innerHTML=channels.map(ch=>`<button type="button" class="comm-list-item ${selection?.kind==='channel'&&selection.id===ch.id?'selected':''}" data-channel="${esc(ch.id)}"><span>#</span><span><strong>${esc(ch.name)}</strong><small>${esc(ch.description||'Company project discussion')}</small></span></button>`).join('')||'<p class="admin-empty">No channels yet.</p>';
+   $('#comm-people-list').innerHTML=members.filter(m=>m.user_id!==currentUser.id).map(m=>`<button type="button" class="comm-list-item ${selection?.kind==='person'&&selection.id===m.user_id?'selected':''}" data-person="${esc(m.user_id)}"><span class="comm-person-avatar">${esc((m.display_name||'N').slice(0,1).toUpperCase())}</span><span><strong>${esc(m.display_name||'Team member')}</strong><small>${esc(m.role)} · ${esc(m.company_email||'Nkabe team')}</small></span></button>`).join('')||'<p class="admin-empty">No other active team members.</p>';
+   $('#comm-channel-list').querySelectorAll('[data-channel]').forEach(b=>b.addEventListener('click',()=>select({kind:'channel',id:b.dataset.channel})));
+   $('#comm-people-list').querySelectorAll('[data-person]').forEach(b=>b.addEventListener('click',()=>select({kind:'person',id:b.dataset.person})));
+  }catch(e){$('#comm-channel-list').textContent=e.message;$('#comm-people-list').textContent='';}
+ };
+ const loadMessages=async()=>{
+  if(!selection)return;
+  try{
+   const data=await call(selection.kind==='channel'?{action:'messages',channel_id:selection.id}:{action:'messages',peer_id:selection.id});
+   const messages=data.messages||[];
+   const names=new Map(members.map(m=>[m.user_id,m.display_name||'Team member']));
+   $('#comm-message-list').innerHTML=messages.length?messages.map(m=>{
+    const mine=m.sender_id===currentUser.id,name=mine?'You':names.get(m.sender_id)||'Nkabe colleague';
+    return `<article class="comm-message ${mine?'mine':''}"><div><strong>${esc(name)}</strong><time>${esc(new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(m.created_at)))}</time></div><p>${esc(m.body)}</p></article>`;
+   }).join(''):'<p class="admin-empty comm-empty">No messages here yet. Start the conversation.</p>';
+   $('#comm-message-list').scrollTop=$('#comm-message-list').scrollHeight;
+  }catch(e){$('#comm-message-list').innerHTML='<p class="admin-empty">'+esc(e.message)+'</p>';}
+ };
+ const select=async next=>{
+  selection=next;const channel=channels.find(x=>x.id===next.id),person=members.find(x=>x.user_id===next.id);
+  $('#comm-title').textContent=next.kind==='channel'?'# '+(channel?.name||'Project channel'):(person?.display_name||'Team member');
+  $('#comm-subtitle').textContent=next.kind==='channel'?(channel?.description||'Company channel'):'Private direct conversation';
+  $('#comm-message-form').hidden=false;
+  $('#comm-channel-list').querySelectorAll('[data-channel]').forEach(b=>b.classList.toggle('selected',next.kind==='channel'&&b.dataset.channel===next.id));
+  $('#comm-people-list').querySelectorAll('[data-person]').forEach(b=>b.classList.toggle('selected',next.kind==='person'&&b.dataset.person===next.id));
+  await loadMessages();
+ };
+ $('#comm-refresh').addEventListener('click',async()=>{await loadLists();await loadMessages();});
+ $('#comm-message-form').addEventListener('submit',async e=>{
+  e.preventDefault();const button=e.currentTarget.querySelector('button');const body=$('#comm-message-body').value.trim();if(!body||!selection)return;
+  button.disabled=true;
+  try{await call(selection.kind==='channel'?{action:'send_message',channel_id:selection.id,body}:{action:'send_message',peer_id:selection.id,body});$('#comm-message-body').value='';await loadMessages();}
+  catch(err){notify(err.message||'Message could not be sent.');}
+  finally{button.disabled=false;}
+ });
+ if(canCreate)$('#comm-create-channel').addEventListener('submit',async e=>{
+  e.preventDefault();const button=e.currentTarget.querySelector('button');button.disabled=true;$('#comm-create-status').textContent='Creating channel…';
+  try{const result=await call({action:'create_channel',name:$('#comm-channel-name').value.trim(),description:$('#comm-channel-description').value.trim()});$('#comm-create-channel').reset();$('#comm-create-status').textContent='Project channel created.';await loadLists();if(result.channel)await select({kind:'channel',id:result.channel.id});}
+  catch(err){$('#comm-create-status').textContent=err.message||'Channel could not be created.';}
+  finally{button.disabled=false;}
+ });
+ await loadLists();
+ const general=channels.find(x=>x.slug==='general');if(general)await select({kind:'channel',id:general.id});
+ if(commRefreshTimer)clearInterval(commRefreshTimer);
+ commRefreshTimer=window.setInterval(()=>{if(selection)loadMessages();},12000);
+}
+
 async function renderTeam(){
  $('#enh-content').innerHTML=`
  <div class="enh-grid">
@@ -187,7 +260,7 @@ async function initForSession(session){
  if(profile.role!=='owner'){$('#team-nav')?.remove();$('#settings-nav')?.remove();}
 }
 sb.auth.onAuthStateChange((event,session)=>{
- if(event==='SIGNED_OUT'){currentUser=null;profile=null;initializedUserId=null;}
+ if(event==='SIGNED_OUT'){currentUser=null;profile=null;initializedUserId=null;if(commRefreshTimer){clearInterval(commRefreshTimer);commRefreshTimer=null;}}
  if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED')Promise.resolve().then(()=>initForSession(session));
 });
 const {data:{session}}=await sb.auth.getSession();
