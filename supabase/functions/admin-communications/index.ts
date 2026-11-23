@@ -125,8 +125,12 @@ Deno.serve(async (request: Request) => {
       .select("from_address,message_id,reference_ids,headers,subject").eq("thread_id", threadId)
       .eq("direction", "inbound").order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (!latest?.from_address) return reply({ error: "There is no inbound sender to reply to." }, 400, origin);
-    const recipient = latest.from_address.match(/<([^>]+)>/)?.[1] ?? latest.from_address;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return reply({ error: "The sender address is invalid; reply cannot be sent." }, 400, origin);
+    const headerBag = latest.headers && typeof latest.headers === "object" ? latest.headers as Record<string, unknown> : {};
+    const replyToKey = Object.keys(headerBag).find(key => key.toLowerCase() === "reply-to");
+    const replyToValue = replyToKey ? String(headerBag[replyToKey] ?? "") : "";
+    const replyToCandidate = replyToValue.match(/<([^>]+)>/)?.[1] ?? replyToValue;
+    const fromCandidate = latest.from_address.match(/<([^>]+)>/)?.[1] ?? latest.from_address;
+    const recipient = replyToCandidate || fromCandidate;
     const refs = Array.isArray(latest.reference_ids) ? latest.reference_ids.filter((x: unknown) => typeof x === "string") : [];
     if (latest.message_id && !refs.includes(latest.message_id)) refs.push(latest.message_id);
     const outboundMessageId = `<nkabe-${crypto.randomUUID()}@nkabe.us>`;
