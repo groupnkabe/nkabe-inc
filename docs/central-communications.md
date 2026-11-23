@@ -39,3 +39,31 @@ Do not point the root `nkabe.us` MX records at Resend unless the company explici
 - Dashboard communications provide direct messages and project channels; this is an internal collaboration layer, not a full replacement for Zoho Mail.
 - Incoming external email is not yet mirrored into the dashboard. That requires an explicit Resend inbound route and webhook configuration.
 - Attachments, private project channels, and collaborative email drafts are follow-on work.
+
+## Resend shared company inbox
+
+The first external mailbox connected is `hello@nkabe.us`.
+
+- The dashboard creates a Resend Inbox with `forwarding: true`.
+- Resend returns a generated `receiving_address`; no root-domain MX change is needed.
+- A signed webhook subscribes to `inbox.email.received` and marks the inbox active after the first inbound message.
+- The `admin-communications` Edge Function exposes inbox status, thread listing, thread retrieval and threaded replies to active team members.
+- Replies use the inbox's configured `from_name` (Nkabe Inc) and `hello@nkabe.us` identity.
+- The Zoho mailbox must forward a copy to the Resend `receiving_address`. Keep the original Zoho copy; do not delete it.
+- The Resend API key must be a full-access key for inbox read and webhook registration. A sending-only key is insufficient.
+- The webhook signing secret is stored in a service-role-only table and is never returned to the browser.
+
+### Zoho forwarding steps
+
+1. In Zoho Mail Admin Console, open Users and select `hello@nkabe.us`.
+2. Open Mailbox Settings → Email Forwarding.
+3. Add the exact Resend receiving address displayed in the Nkabe dashboard.
+4. Complete the verification code sent to the Resend receiving address (the dashboard webhook records the event; if Zoho sends a verification code, check the Resend inbox).
+5. Keep the Zoho original-message retention option enabled.
+6. Send a test message to `hello@nkabe.us` from an external account and confirm it appears in both Zoho and the Nkabe dashboard.
+
+Do not change the root `nkabe.us` MX records. Only the forwarding destination for the `hello@nkabe.us` mailbox is changed.
+
+### Privacy note
+
+Resend's security documentation states that inbound Inbox message content is sent to Anthropic for automatic classification, even when the Inbox AI agent features are not enabled. Review this before forwarding real company correspondence. No email should be forwarded until the Owner has accepted this data-processing implication.
