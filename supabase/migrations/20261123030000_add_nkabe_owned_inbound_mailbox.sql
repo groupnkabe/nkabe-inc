@@ -37,7 +37,7 @@ create table if not exists public.admin_inbound_email_messages (
   html_body text not null default '',
   message_id text,
   in_reply_to text,
-  references text[] not null default '{}',
+  reference_ids text[] not null default '{}',
   headers jsonb not null default '{}',
   created_at timestamptz not null default now()
 );
